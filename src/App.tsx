@@ -90,7 +90,7 @@ const App: React.FC = () => {
           {text}
         </p>
 
-        <img alt="Haha" src="previewSource" />
+        <img alt="Haha" src={previewSource} />
 
         {/* Displaying videos */}
         {videos.map((video, index) => (
