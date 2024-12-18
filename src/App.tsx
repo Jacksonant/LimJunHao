@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 
 import videoSource from "./assets/video/Rick_Roll.mp4";
 import bgSource from "./assets/img/north_korea_flag.jpeg";
+import previewSource from "./assets/img/preview_img.png";
 
 const App: React.FC = () => {
   const [videos, setVideos] = useState<
@@ -88,6 +89,8 @@ const App: React.FC = () => {
         >
           {text}
         </p>
+
+        <img alt="Haha" src="previewSource" />
 
         {/* Displaying videos */}
         {videos.map((video, index) => (
