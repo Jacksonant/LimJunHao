@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 
-import videoSource from "./video/Rick_Roll.mp4";
-import bgSource from "./img/north_korea_flag.jpeg";
+import videoSource from "./assets/video/Rick_Roll.mp4";
+import bgSource from "./assets/img/north_korea_flag.jpeg";
 
 const App: React.FC = () => {
   const [videos, setVideos] = useState<
