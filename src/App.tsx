@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 
-const videoSource = "/video/Rick_Roll.mp4"; // Path to your video
-const bgSource = "/img/north_korea_flag.jpeg"; // Correct path to your local image
+const videoSource = "src/assets/video/Rick_Roll.mp4"; // Path to your video
+const bgSource = "src/assets/img/north_korea_flag.jpeg"; // Correct path to your local image
 
 const App: React.FC = () => {
   const [videos, setVideos] = useState<
