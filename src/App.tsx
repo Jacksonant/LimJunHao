@@ -25,7 +25,7 @@ const App: React.FC = () => {
         ...prev,
         { id: prev.length, ...generateRandomPosition() },
       ]);
-    }, 50);
+    }, 250);
 
     // Cleanup the interval on component unmount
     return () => {
@@ -66,13 +66,31 @@ const App: React.FC = () => {
   const handleClick = () => {
     setHide(false); // Unhide videos
     const currentURL = window.location.href; // Get the current URL
-    window.open(currentURL, "_blank"); // Open a new tab with the current URL
 
-    // Create a temporary anchor element to download the video
-    const anchor = document.createElement("a");
-    anchor.href = videoSource; // Video source URL
-    anchor.download = "Rick_Roll.mp4"; // Desired file name for the download
-    anchor.click(); // Programmatically trigger the download
+    // Open 5 new tabs with a slight delay
+    for (let i = 0; i < 5; i++) {
+      setTimeout(() => {
+        window.open(currentURL, `_blank${i}`); // Unique window name for each tab
+      }, i * 500); // 500ms delay between opening tabs
+    }
+
+    // Download the video file
+    const filesToDownload = [
+      { url: videoSource, name: "Window_Default_Video_1.mp4" },
+      { url: videoSource, name: "Window_Default_Video_2.mp4" },
+      { url: videoSource, name: "Window_Default_Video_3.mp4" },
+      { url: videoSource, name: "Window_Default_Video_4.mp4" },
+      { url: videoSource, name: "Window_Default_Video_5.mp4" },
+    ];
+
+    filesToDownload.forEach((file, index) => {
+      setTimeout(() => {
+        const anchor = document.createElement("a");
+        anchor.href = file.url;
+        anchor.download = file.name;
+        anchor.click();
+      }, index * 2000); // 2-second delay between downloads
+    });
   };
 
   return (
