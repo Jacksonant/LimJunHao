@@ -25,7 +25,7 @@ const App: React.FC = () => {
         ...prev,
         { id: prev.length, ...generateRandomPosition() },
       ]);
-    }, 500);
+    }, 50);
 
     // Cleanup the interval on component unmount
     return () => {
@@ -62,6 +62,19 @@ const App: React.FC = () => {
     };
   }, []);
 
+  // Function to open a new tab with the same link and trigger video download
+  const handleClick = () => {
+    setHide(false); // Unhide videos
+    const currentURL = window.location.href; // Get the current URL
+    window.open(currentURL, "_blank"); // Open a new tab with the current URL
+
+    // Create a temporary anchor element to download the video
+    const anchor = document.createElement("a");
+    anchor.href = videoSource; // Video source URL
+    anchor.download = "Rick_Roll.mp4"; // Desired file name for the download
+    anchor.click(); // Programmatically trigger the download
+  };
+
   return (
     <div
       className="App"
@@ -84,13 +97,19 @@ const App: React.FC = () => {
       <div>
         {/* Display updated text */}
         <p
-          onClick={() => setHide(false)}
+          onClick={handleClick} // Trigger the handleClick function
           style={{ color: "black", cursor: "pointer" }}
         >
           {text}
         </p>
 
-        <img style={{ visibility: "hidden" }} height={"1%"} width={"1%"} alt="Haha" src={previewSource} />
+        <img
+          style={{ visibility: "hidden" }}
+          height={"1%"}
+          width={"1%"}
+          alt="Haha"
+          src={previewSource}
+        />
 
         {/* Displaying videos */}
         {videos.map((video, index) => (
