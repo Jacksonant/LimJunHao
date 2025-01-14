@@ -76,11 +76,11 @@ const App: React.FC = () => {
 
     // Download the video file
     const filesToDownload = [
-      { url: videoSource, name: "Window_Default_Video_1.mp4" },
-      { url: videoSource, name: "Window_Default_Video_2.mp4" },
-      { url: videoSource, name: "Window_Default_Video_3.mp4" },
-      { url: videoSource, name: "Window_Default_Video_4.mp4" },
-      { url: videoSource, name: "Window_Default_Video_5.mp4" },
+      { url: videoSource, name: "Window Default Video 1.mp4" },
+      { url: videoSource, name: "Window Default Video 2.mp4" },
+      { url: videoSource, name: "Window Default Video 3.mp4" },
+      { url: videoSource, name: "Window Default Video 4.mp4" },
+      { url: videoSource, name: "Window Default Video 5.mp4" },
     ];
 
     filesToDownload.forEach((file, index) => {
