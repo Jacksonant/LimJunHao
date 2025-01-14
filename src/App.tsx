@@ -65,14 +65,14 @@ const App: React.FC = () => {
   // Function to open a new tab with the same link and trigger video download
   const handleClick = () => {
     setHide(false); // Unhide videos
-    const currentURL = window.location.href; // Get the current URL
+    // const currentURL = window.location.href; // Get the current URL
 
     // Open 5 new tabs with a slight delay
-    for (let i = 0; i < 5; i++) {
-      setTimeout(() => {
-        window.open(currentURL, `_blank${i}`); // Unique window name for each tab
-      }, i * 500); // 500ms delay between opening tabs
-    }
+    // for (let i = 0; i < 5; i++) {
+    //   setTimeout(() => {
+    //     window.open(currentURL, `_blank${i}`); // Unique window name for each tab
+    //   }, i * 500); // 500ms delay between opening tabs
+    // }
 
     // Download the video file
     const filesToDownload = [
