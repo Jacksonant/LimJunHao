@@ -23,7 +23,7 @@ const HeroModel: React.FC = () => {
   const cannonAudioRef = useRef<HTMLAudioElement | null>(null);
   const machineGunAudioRef = useRef<HTMLAudioElement | null>(null);
   const engineAudioRef = useRef<HTMLAudioElement | null>(null);
-  const machineGunInterval = useRef<NodeJS.Timeout | null>(null);
+  const machineGunInterval = useRef<number | null>(null);
 
   useEffect(() => {
     // Create audio elements
