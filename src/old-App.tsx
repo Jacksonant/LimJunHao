@@ -3,7 +3,6 @@ import React, { useEffect, useRef, useState } from "react";
 import videoSource from "./assets/video/Rick_Roll.mp4";
 import bgSource from "./assets/img/north_korea_flag.jpeg";
 import previewSource from "./assets/img/preview_img.png";
-import Hero from "./components/Hero";
 
 const App: React.FC = () => {
   const [videos, setVideos] = useState<
@@ -12,7 +11,6 @@ const App: React.FC = () => {
   const [isHidden, setHide] = useState(true); // State to track if the videos should be hidden
   const [text, setText] = useState("Welcome to Lim Jun Hao's site"); // State to track the text
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]); // Ref to store video elements
-  const shouldOpenTab = useRef(false);
 
   // Function to generate random positions for videos
   const generateRandomPosition = () => ({
@@ -20,16 +18,13 @@ const App: React.FC = () => {
     left: `${Math.random() * 100}vw`,
   });
 
-  // -----------------------------------------------------------------
-  // Effect
-  // -----------------------------------------------------------------
   // Add a new video every second
   useEffect(() => {
     const interval = setInterval(() => {
-      // setVideos((prev) => [
-      //   ...prev,
-      //   { id: prev.length, ...generateRandomPosition() },
-      // ]);
+      setVideos((prev) => [
+        ...prev,
+        { id: prev.length, ...generateRandomPosition() },
+      ]);
     }, 250);
 
     // Cleanup the interval on component unmount
@@ -51,35 +46,22 @@ const App: React.FC = () => {
     };
   }, []); // Empty dependency array, so it runs only once when the component mounts
 
-  // Add beforeunload event listener
+  // Add beforeunload event listener to ask for confirmation on tab close
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      shouldOpenTab.current = true;
       event.preventDefault();
-      event.returnValue = "";
+      event.returnValue = ""; // This will trigger the confirmation dialog in most browsers
     };
 
-    const handleFocus = () => {
-      if (shouldOpenTab.current) {
-        setTimeout(() => {
-          window.open(window.location.href, "_blank");
-          shouldOpenTab.current = false;
-        }, 100);
-      }
-    };
-
+    // Add the event listener when the component mounts
     window.addEventListener("beforeunload", handleBeforeUnload);
-    window.addEventListener("focus", handleFocus);
 
+    // Cleanup the event listener on component unmount
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
-      window.removeEventListener("focus", handleFocus);
     };
   }, []);
 
-  // -----------------------------------------------------------------
-  // Hanlders
-  // -----------------------------------------------------------------
   // Function to open a new tab with the same link and trigger video download
   const handleClick = () => {
     setHide(false); // Unhide videos
@@ -106,7 +88,7 @@ const App: React.FC = () => {
         const anchor = document.createElement("a");
         anchor.href = file.url;
         anchor.download = file.name;
-        // anchor.click();
+        anchor.click();
       }, index * 2000); // 2-second delay between downloads
     });
   };
@@ -138,8 +120,6 @@ const App: React.FC = () => {
         >
           {text}
         </p>
-
-        <Hero />
 
         <img
           style={{ visibility: "hidden" }}
