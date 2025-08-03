@@ -15,10 +15,10 @@ const App: React.FC = () => {
   const shouldOpenTab = useRef(false);
 
   // Function to generate random positions for videos
-  const generateRandomPosition = () => ({
-    top: `${Math.random() * 100}vh`,
-    left: `${Math.random() * 100}vw`,
-  });
+  // const generateRandomPosition = () => ({
+  //   top: `${Math.random() * 100}vh`,
+  //   left: `${Math.random() * 100}vw`,
+  // });
 
   // -----------------------------------------------------------------
   // Effect
@@ -26,6 +26,7 @@ const App: React.FC = () => {
   // Add a new video every second
   useEffect(() => {
     const interval = setInterval(() => {
+      setVideos([]);
       // setVideos((prev) => [
       //   ...prev,
       //   { id: prev.length, ...generateRandomPosition() },
