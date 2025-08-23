@@ -2,14 +2,14 @@ import { OrbitControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import React from "react";
 import { useLoading } from "../contexts/LoadingContext";
-import HeroModel from "./three/HeroModel";
+import NorthKoreaModel from "./three/NorthKoreaModel";
 
-const Hero: React.FC = () => {
+const NorthKorea: React.FC = () => {
   const { completeLoading } = useLoading();
 
   return (
-    <section id="hero" style={{ height: '100vh' }}>
-      <div className="absolute inset-0 z-10" style={{ height: '100vh' }}>
+    <section id="hero" style={{ height: "100vh" }}>
+      <div className="absolute inset-0 z-10" style={{ height: "100vh" }}>
         <Canvas
           shadows
           camera={{ position: [0, 0, 5], fov: 45 }}
@@ -27,7 +27,7 @@ const Hero: React.FC = () => {
             castShadow
           />
           <pointLight position={[-10, -10, -10]} intensity={0.5} />
-          <HeroModel />
+          <NorthKoreaModel />
           <OrbitControls
             enableZoom={true}
             enablePan={true}
@@ -37,19 +37,21 @@ const Hero: React.FC = () => {
           />
         </Canvas>
       </div>
-      
+
       {/* Control Instructions */}
-      <div style={{
-        position: 'absolute',
-        bottom: '16px',
-        right: '16px',
-        zIndex: 20,
-        backgroundColor: 'rgba(0, 0, 0, 0.6)',
-        color: 'white',
-        padding: '8px',
-        borderRadius: '4px',
-        fontSize: '12px'
-      }}>
+      <div
+        style={{
+          position: "absolute",
+          bottom: "16px",
+          right: "16px",
+          zIndex: 20,
+          backgroundColor: "rgba(0, 0, 0, 0.6)",
+          color: "white",
+          padding: "8px",
+          borderRadius: "4px",
+          fontSize: "12px",
+        }}
+      >
         <div>WASD / Arrow Keys</div>
         <div>Enter: Fire Cannon</div>
         <div>Space: Machine Gun</div>
@@ -58,4 +60,4 @@ const Hero: React.FC = () => {
   );
 };
 
-export default Hero;
+export default NorthKorea;

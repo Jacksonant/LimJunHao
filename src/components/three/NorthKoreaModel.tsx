@@ -7,7 +7,7 @@ import shellFiringSound from "../../assets/audio/shell-firing.mp3";
 import tankMovingSound from "../../assets/audio/tank-moving.mp3";
 import bgSource from "../../assets/img/north_korea_flag.jpeg";
 
-const HeroModel: React.FC = () => {
+const NorthKoreaModel: React.FC = () => {
   // Create a T-34 tank using primitives
   const tankRef = useRef<THREE.Group>(null);
   const materialRef = useRef<THREE.MeshStandardMaterial>(null);
@@ -692,4 +692,4 @@ const HeroModel: React.FC = () => {
   );
 };
 
-export default HeroModel;
+export default NorthKoreaModel;
