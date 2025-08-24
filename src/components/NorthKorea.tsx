@@ -8,11 +8,12 @@ const NorthKorea: React.FC = () => {
   const { completeLoading } = useLoading();
 
   return (
-    <section id="hero" style={{ height: "100vh" }}>
-      <div className="absolute inset-0 z-10" style={{ height: "100vh" }}>
+    <section id="hero" style={{ height: "100vh", position: "relative" }}>
+      <div className="absolute inset-0 z-10" style={{ height: "100vh", pointerEvents: "auto" }}>
         <Canvas
           shadows
           camera={{ position: [0, 0, 5], fov: 45 }}
+          style={{ pointerEvents: "auto" }}
           onCreated={() => {
             // Once Three.js canvas is created, complete loading
             setTimeout(completeLoading, 1000);
@@ -32,8 +33,10 @@ const NorthKorea: React.FC = () => {
             enableZoom={true}
             enablePan={true}
             autoRotate={false}
-            minDistance={2}
-            maxDistance={15}
+            minDistance={0.5}
+            maxDistance={50}
+            enableDamping={true}
+            dampingFactor={0.05}
           />
         </Canvas>
       </div>
@@ -55,7 +58,40 @@ const NorthKorea: React.FC = () => {
         <div>WASD / Arrow Keys</div>
         <div>Enter: Fire Cannon</div>
         <div>Space: Machine Gun</div>
+        <div>Mouse: Look Around</div>
+        <div>Scroll: Zoom In/Out</div>
       </div>
+
+      {/* Scroll Down Indicator */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: "20px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 20,
+          color: "white",
+          textAlign: "center",
+          animation: "bounce 2s infinite",
+        }}
+      >
+        <div style={{ fontSize: "14px", marginBottom: "8px" }}>Scroll Down</div>
+        <div style={{ fontSize: "24px" }}>↓</div>
+      </div>
+
+      <style>{`
+        @keyframes bounce {
+          0%, 20%, 50%, 80%, 100% {
+            transform: translateX(-50%) translateY(0);
+          }
+          40% {
+            transform: translateX(-50%) translateY(-10px);
+          }
+          60% {
+            transform: translateX(-50%) translateY(-5px);
+          }
+        }
+      `}</style>
     </section>
   );
 };

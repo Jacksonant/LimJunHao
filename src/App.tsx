@@ -143,6 +143,9 @@ const App: React.FC = () => {
         </div>
       </div>
 
+      {/* North Korea Section */}
+      <NorthKorea />
+
       {/* Life Story Section */}
       <LifeStory />
 

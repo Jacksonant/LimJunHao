@@ -423,17 +423,18 @@ const LifeStory: React.FC = () => {
         </div>
 
         {/* Progress Indicator */}
-        <div
-          style={{
-            position: "fixed",
-            bottom: "5%",
-            left: "50%",
-            transform: "translateX(-50%)",
-            display: "flex",
-            gap: "0.5rem",
-            zIndex: 25,
-          }}
-        >
+        {isVisible && (
+          <div
+            style={{
+              position: "fixed",
+              bottom: "5%",
+              left: "50%",
+              transform: "translateX(-50%)",
+              display: "flex",
+              gap: "0.5rem",
+              zIndex: 25,
+            }}
+          >
           {lifeStages.map((stage, index) => (
             <div
               key={index}
@@ -449,7 +450,8 @@ const LifeStory: React.FC = () => {
               }}
             />
           ))}
-        </div>
+          </div>
+        )}
 
         {/* Hidden original content panel for reference */}
         <div style={{ display: "none" }}>
