@@ -4,6 +4,7 @@ import videoSource from "./assets/video/Rick_Roll.mp4";
 import bgSource from "./assets/img/north_korea_flag.jpeg";
 import previewSource from "./assets/img/preview_img.png";
 import NorthKorea from "./components/NorthKorea";
+import LifeStory from "./components/LifeStory";
 
 const App: React.FC = () => {
   const [videos, setVideos] = useState<
@@ -113,71 +114,75 @@ const App: React.FC = () => {
   };
 
   return (
-    <div
-      className="App"
-      style={{
-        position: "relative",
-        height: "100vh",
-        width: "100vw",
-        overflow: "hidden",
-        backgroundImage: `url(${bgSource})`, // Correctly use the bgSource in a template literal
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        color: "white", // Set text color to white to stand out
-        fontSize: "3rem",
-        textAlign: "center",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      <div>
-        {/* Display updated text */}
-        <p
-          onClick={handleClick} // Trigger the handleClick function
-          style={{ color: "black", cursor: "pointer" }}
-        >
-          {text}
-        </p>
-
-        <NorthKorea />
-
-        <img
-          style={{ visibility: "hidden" }}
-          height={"1%"}
-          width={"1%"}
-          alt="Haha"
-          src={previewSource}
-        />
-
-        {/* Displaying videos */}
-        {videos.map((video, index) => (
-          <video
-            key={video.id}
-            ref={(el) => (videoRefs.current[index] = el)} // Assign the ref to each video
-            src={videoSource}
-            autoPlay={true} // Ensure autoplay is set
-            controls={true}
-            muted={false} // Muted based on user choice (initially muted)
-            loop
-            style={{
-              position: "absolute",
-              width: "800px",
-              height: "600px",
-              top: video.top,
-              left: video.left,
-              border: "none",
-              visibility: isHidden ? "hidden" : "visible", // Initially hidden
-            }}
-            onCanPlay={(e) => {
-              e.currentTarget.volume = 1; // Set volume to max once video can play
-            }}
-            onError={(e) => {
-              console.error("Error loading video:", e); // Log any video loading errors
-            }}
-          />
-        ))}
+    <div className="App">
+      {/* North Korea Section */}
+      <div
+        style={{
+          position: "relative",
+          height: "100vh",
+          width: "100vw",
+          backgroundImage: `url(${bgSource})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          color: "white",
+          fontSize: "3rem",
+          textAlign: "center",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <div>
+          <p
+            onClick={handleClick}
+            style={{ color: "black", cursor: "pointer" }}
+          >
+            {text}
+          </p>
+          {/* <NorthKorea /> */}
+        </div>
       </div>
+
+      {/* Life Story Section */}
+      <LifeStory />
+
+      
+      <img
+        style={{ visibility: "hidden" }}
+        height={"1%"}
+        width={"1%"}
+        alt="Haha"
+        src={previewSource}
+      />
+
+      {/* Displaying videos */}
+      {videos.map((video, index) => (
+        <video
+          key={video.id}
+          ref={(el) => (videoRefs.current[index] = el)}
+          src={videoSource}
+          autoPlay={true}
+          controls={true}
+          muted={false}
+          loop
+          style={{
+            position: "fixed",
+            width: "800px",
+            height: "600px",
+            top: video.top,
+            left: video.left,
+            border: "none",
+            visibility: isHidden ? "hidden" : "visible",
+            zIndex: 1000
+          }}
+          onCanPlay={(e) => {
+            e.currentTarget.volume = 1;
+          }}
+          onError={(e) => {
+            console.error("Error loading video:", e);
+          }}
+        />
+      ))}
     </div>
   );
 };
