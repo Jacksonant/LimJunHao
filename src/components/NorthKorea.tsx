@@ -179,6 +179,7 @@ const NorthKorea: React.FC = () => {
           <div>WASD / Arrow Keys</div>
           <div>Enter: Fire Cannon</div>
           <div>Space: Machine Gun</div>
+          <div>B: Rear View</div>
           <div>Mouse: Look Around</div>
           <div>Scroll: Zoom In/Out</div>
           <div style={{ marginTop: "4px", borderTop: "1px solid rgba(255,255,255,0.3)", paddingTop: "4px" }}>
