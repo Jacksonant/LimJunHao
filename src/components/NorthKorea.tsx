@@ -187,7 +187,7 @@ const NorthKorea: React.FC = () => {
             textAlign: "center"
           }}
         >
-          <div style={{ color: getHealthColor(playerHealth), fontSize: "14px", marginBottom: "4px" }}>Player: {playerHealth}/100</div>
+          <div style={{ color: getHealthColor(playerHealth), fontSize: "14px", marginBottom: "4px" }}>Player</div>
           <div style={{ width: "300px", height: "12px", backgroundColor: "rgba(0,0,0,0.7)", borderRadius: "6px", overflow: "hidden", border: "2px solid rgba(0,255,0,0.5)" }}>
             <div style={{ width: `${playerHealth}%`, height: "100%", backgroundColor: getHealthColor(playerHealth), transition: "all 0.3s ease" }} />
           </div>
@@ -206,7 +206,7 @@ const NorthKorea: React.FC = () => {
             textAlign: "center"
           }}
         >
-          <div style={{ color: getHealthColor(enemyHealth / 10), fontSize: "14px", marginBottom: "4px" }}>Enemy: {enemyHealth}/1000</div>
+          <div style={{ color: getHealthColor(enemyHealth / 10), fontSize: "14px", marginBottom: "4px" }}>Enemy</div>
           <div style={{ width: "400px", height: "12px", backgroundColor: "rgba(0,0,0,0.7)", borderRadius: "6px", overflow: "hidden", border: "2px solid rgba(0,255,0,0.5)" }}>
             <div style={{ width: `${enemyHealth / 10}%`, height: "100%", backgroundColor: getHealthColor(enemyHealth / 10), transition: "all 0.3s ease" }} />
           </div>
