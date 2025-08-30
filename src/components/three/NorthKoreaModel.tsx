@@ -25,7 +25,7 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
   const [isMachineGunFiring, setIsMachineGunFiring] = useState(false);
   const [isMoving, setIsMoving] = useState(false);
   const [cannonCooldown, setCannonCooldown] = useState(false);
-  const [projectiles, setProjectiles] = useState<Array<{id: number, position: THREE.Vector3, velocity: THREE.Vector3, type: 'shell' | 'bullet', life: number}>>([]);
+  const [projectiles, setProjectiles] = useState<Array<{id: number, position: THREE.Vector3, velocity: THREE.Vector3, type: 'shell' | 'bullet', life: number, rotation: number}>>([]);
   const projectileId = useRef(0);
   const lastMovingState = useRef(false);
   const gunRef = useRef<THREE.Group>(null);
@@ -103,7 +103,8 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
             position: gunPos.clone(),
             velocity: shellVelocity,
             type: 'shell',
-            life: Infinity
+            life: Infinity,
+            rotation: tankRotation
           }]);
         }
 
@@ -158,7 +159,8 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
               position: gunPos.clone(),
               velocity: bulletVelocity,
               type: 'bullet',
-              life: Infinity
+              life: Infinity,
+              rotation: tankRotation + spread
             }]);
           }
         }, 5);
@@ -220,7 +222,7 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
 
   useFrame((state) => {
     if (tankRef.current && isActive) {
-      const speed = 0.05;
+      const speed = 0.15;
 
       // Tank movement
       const moving = keys.w || keys.s || keys.a || keys.d;
@@ -343,12 +345,11 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
     <>
       {/* Projectiles */}
       {projectiles.map(projectile => {
-        const tankRotation = tankRef.current?.rotation.y || 0;
         return (
           <mesh 
             key={projectile.id} 
             position={[projectile.position.x, projectile.position.y, projectile.position.z]}
-            rotation={[0, tankRotation, Math.PI / 2]}
+            rotation={[0, projectile.rotation, Math.PI / 2]}
           >
             {projectile.type === 'shell' ? (
               <cylinderGeometry args={[0.05, 0.05, 0.3, 8]} />
