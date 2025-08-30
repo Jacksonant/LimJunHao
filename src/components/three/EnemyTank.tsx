@@ -29,7 +29,11 @@ const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({
 }, ref) => {
   const tankRef = ref as React.RefObject<THREE.Group>;
   const lastShot = useRef(0);
-  const projectileId = useRef(1000); // Start from 1000 to avoid conflicts
+  const lastMGShot = useRef(0);
+  const projectileId = useRef(1000);
+  const searchRotation = useRef(0);
+  const lastPlayerSeen = useRef(0);
+  const searchDirection = useRef(1); // 1 or -1 for search direction
 
   useFrame((state) => {
     if (!tankRef.current) return;
@@ -37,44 +41,62 @@ const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({
     const enemyPos = position.clone();
     const distanceToPlayer = enemyPos.distanceTo(playerPosition);
     
-    // AI behavior
+    // 1. FACE PLAYER WITH TANK'S ACTUAL FRONT (WEST VIEW)
     const directionToPlayer = playerPosition.clone().sub(enemyPos).normalize();
-    const targetRotation = Math.atan2(-directionToPlayer.x, -directionToPlayer.z);
+    // Adjust for tank's actual front direction (add π/2 to align with west view)
+    const targetRotation = Math.atan2(-directionToPlayer.x, -directionToPlayer.z) + Math.PI / 2;
     
-    // Rotate towards player
     let rotDiff = targetRotation - rotation;
     if (rotDiff > Math.PI) rotDiff -= 2 * Math.PI;
     if (rotDiff < -Math.PI) rotDiff += 2 * Math.PI;
     
-    const newRotation = rotation + Math.sign(rotDiff) * Math.min(Math.abs(rotDiff), 0.02);
+    // Fast rotation to face player with actual front
+    const newRotation = rotation + Math.sign(rotDiff) * Math.min(Math.abs(rotDiff), 0.08);
     onRotationChange(newRotation);
     
-    // Movement AI
-    if (distanceToPlayer > 8) {
-      // Move towards player
+    // 2. MOVEMENT: Move when facing player
+    const facingPlayer = Math.abs(rotDiff) < 0.1;
+    
+    if (facingPlayer) {
+      const BOUNDARY = 20;
+      const nearBoundary = Math.abs(enemyPos.x) > BOUNDARY || Math.abs(enemyPos.z) > BOUNDARY;
       const moveSpeed = 0.08;
-      const newPos = enemyPos.clone();
-      newPos.x += Math.cos(newRotation) * moveSpeed;
-      newPos.z -= Math.sin(newRotation) * moveSpeed;
-      onPositionChange(newPos);
-    } else if (distanceToPlayer < 5) {
-      // Back away if too close
-      const moveSpeed = 0.05;
-      const newPos = enemyPos.clone();
-      newPos.x -= Math.cos(newRotation) * moveSpeed;
-      newPos.z += Math.sin(newRotation) * moveSpeed;
-      onPositionChange(newPos);
+      
+      let shouldMove = false;
+      let moveDirection = 1;
+      
+      if (nearBoundary) {
+        shouldMove = true;
+        moveDirection = -1; // Reverse from boundary
+      } else if (distanceToPlayer > 8) {
+        shouldMove = true;
+        moveDirection = 1; // Advance toward player
+      } else if (distanceToPlayer < 4) {
+        shouldMove = true;
+        moveDirection = -1; // Retreat from player
+      }
+      
+      if (shouldMove) {
+        const newPos = enemyPos.clone();
+        newPos.x += Math.cos(newRotation) * moveSpeed * moveDirection;
+        newPos.z -= Math.sin(newRotation) * moveSpeed * moveDirection;
+        onPositionChange(newPos);
+      }
     }
     
-    // Shooting AI
+    // 3. SHOOTING: Main gun and continuous machine guns
     const currentTime = state.clock.getElapsedTime();
-    if (currentTime - lastShot.current > 2 && distanceToPlayer < 20) {
+    const aimAccuracy = Math.abs(rotDiff) < 0.2;
+    
+    // Main gun - slower interval
+    const mainGunInterval = 2.0;
+    if (currentTime - lastShot.current > mainGunInterval && aimAccuracy) {
       lastShot.current = currentTime;
       
       const gunPos = enemyPos.clone();
-      gunPos.y += 0.9;
-      gunPos.x += Math.cos(newRotation) * 3;
-      gunPos.z -= Math.sin(newRotation) * 3;
+      gunPos.y += 1.1;
+      gunPos.x += Math.cos(newRotation) * 3.5;
+      gunPos.z -= Math.sin(newRotation) * 3.5;
       
       const shellVelocity = new THREE.Vector3(
         Math.cos(newRotation) * 0.8,
@@ -92,6 +114,69 @@ const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({
         owner: 'enemy'
       });
     }
+    
+    // Machine guns - continuous rapid fire when facing player
+    const mgInterval = 0.1; // Very fast
+    if (currentTime - lastMGShot.current > mgInterval && aimAccuracy) {
+      lastMGShot.current = currentTime;
+      
+      // Machine gun positions
+      const mgPos1 = enemyPos.clone();
+      mgPos1.y += 1.3;
+      mgPos1.x += Math.cos(newRotation) * 1.5;
+      mgPos1.z -= Math.sin(newRotation) * 1.5;
+      mgPos1.x += Math.cos(newRotation + Math.PI/2) * 0.4;
+      mgPos1.z -= Math.sin(newRotation + Math.PI/2) * 0.4;
+      
+      const mgPos2 = enemyPos.clone();
+      mgPos2.y += 1.3;
+      mgPos2.x += Math.cos(newRotation) * 1.5;
+      mgPos2.z -= Math.sin(newRotation) * 1.5;
+      mgPos2.x += Math.cos(newRotation - Math.PI/2) * 0.4;
+      mgPos2.z -= Math.sin(newRotation - Math.PI/2) * 0.4;
+      
+      const mgPosFront = enemyPos.clone();
+      mgPosFront.y += 0.8;
+      mgPosFront.x += Math.cos(newRotation) * 2.5;
+      mgPosFront.z -= Math.sin(newRotation) * 2.5;
+      
+      const mgVelocity = new THREE.Vector3(
+        Math.cos(newRotation) * 0.6,
+        0,
+        -Math.sin(newRotation) * 0.6
+      );
+      
+      // Fire all machine guns continuously
+      onProjectile({
+        id: projectileId.current++,
+        position: mgPos1,
+        velocity: mgVelocity.clone(),
+        type: 'bullet',
+        life: Infinity,
+        rotation: newRotation,
+        owner: 'enemy'
+      });
+      
+      onProjectile({
+        id: projectileId.current++,
+        position: mgPos2,
+        velocity: mgVelocity.clone(),
+        type: 'bullet',
+        life: Infinity,
+        rotation: newRotation,
+        owner: 'enemy'
+      });
+      
+      onProjectile({
+        id: projectileId.current++,
+        position: mgPosFront,
+        velocity: mgVelocity.clone(),
+        type: 'bullet',
+        life: Infinity,
+        rotation: newRotation,
+        owner: 'enemy'
+      });
+    }
 
     // Update tank transform
     tankRef.current.position.copy(position);
@@ -101,25 +186,25 @@ const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({
   return (
     <group ref={tankRef} scale={[1.0, 1.0, 1.0]}>
       <mesh castShadow receiveShadow>
-        {/* Advanced Enemy Hull - larger and more angular */}
+        {/* Advanced Enemy Hull */}
         <mesh position={[0, 0.3, 0]}>
           <boxGeometry args={[6.5, 1.0, 3.2]} />
           <meshStandardMaterial color="#2a0a0a" roughness={0.7} metalness={0.4} emissive="#4a0000" emissiveIntensity={0.4} />
         </mesh>
 
-        {/* Sloped front armor - more aggressive */}
+        {/* Sloped front armor */}
         <mesh position={[3.0, 0.5, 0]} rotation={[0, 0, -0.4]}>
           <boxGeometry args={[1.0, 0.8, 3.2]} />
           <meshStandardMaterial color="#2a0a0a" roughness={0.7} metalness={0.4} />
         </mesh>
 
-        {/* Advanced Turret - larger and more imposing */}
+        {/* Advanced Turret */}
         <mesh position={[0.3, 1.0, 0]}>
           <cylinderGeometry args={[1.3, 1.5, 1.0, 8]} />
           <meshStandardMaterial color="#2a0a0a" roughness={0.7} metalness={0.4} />
         </mesh>
 
-        {/* Main Gun - larger caliber */}
+        {/* Main Gun */}
         <mesh position={[3.5, 1.1, 0]} rotation={[0, 0, Math.PI / 2]}>
           <cylinderGeometry args={[0.08, 0.08, 5.5, 16]} />
           <meshStandardMaterial color="#0a0a0a" roughness={0.2} metalness={0.9} />
@@ -131,7 +216,7 @@ const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({
           <meshStandardMaterial color="#0a0a0a" roughness={0.3} metalness={0.8} />
         </mesh>
 
-        {/* Secondary weapons - dual machine guns */}
+        {/* Secondary weapons */}
         <mesh position={[1.5, 1.3, 0.4]} rotation={[0, 0, Math.PI / 2]}>
           <cylinderGeometry args={[0.04, 0.04, 1.2, 12]} />
           <meshStandardMaterial color="#0a0a0a" roughness={0.2} metalness={0.9} />
@@ -147,7 +232,7 @@ const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({
           <meshStandardMaterial color="#1a0505" roughness={0.8} metalness={0.2} />
         </mesh>
 
-        {/* Advanced suspension - 6 road wheels per side */}
+        {/* Road wheels */}
         {[2.2, 1.3, 0.4, -0.5, -1.4, -2.3].map((x, i) => (
           <React.Fragment key={i}>
             <mesh position={[x, -0.15, 1.4]} rotation={[Math.PI / 2, 0, 0]}>
@@ -161,7 +246,7 @@ const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({
           </React.Fragment>
         ))}
 
-        {/* Tracks - wider and more robust */}
+        {/* Tracks */}
         <mesh position={[0, -0.25, 1.6]}>
           <boxGeometry args={[5.5, 0.35, 0.5]} />
           <meshStandardMaterial color="#050505" roughness={1} />
@@ -171,7 +256,7 @@ const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({
           <meshStandardMaterial color="#050505" roughness={1} />
         </mesh>
 
-        {/* Reactive armor blocks */}
+        {/* Reactive armor */}
         {Array.from({ length: 8 }, (_, i) => (
           <mesh key={i} position={[i * 0.7 - 2.45, 0.6, 1.65]} rotation={[0.2, 0, 0]}>
             <boxGeometry args={[0.5, 0.15, 0.1]} />

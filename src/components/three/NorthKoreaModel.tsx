@@ -122,23 +122,8 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
       }
     }
 
-    // Tank-to-tank collision detection
-    if (playerTankRef.current && enemyTankRef.current) {
-      const distance = playerPosition.distanceTo(enemyPosition);
-      const minDistance = 6; // Minimum distance between tanks
-      
-      if (distance < minDistance) {
-        const pushDirection = playerPosition.clone().sub(enemyPosition).normalize();
-        const pushForce = 0.05; // Slower momentum
-        
-        // Push tanks apart with slower momentum
-        const playerPush = pushDirection.clone().multiplyScalar(pushForce);
-        const enemyPush = pushDirection.clone().multiplyScalar(-pushForce);
-        
-        handlePlayerPositionChange(playerPosition.clone().add(playerPush));
-        handleEnemyPositionChange(enemyPosition.clone().add(enemyPush));
-      }
-    }
+    // DEBUG: Collision system disabled
+    // Tank-to-tank collision detection disabled for debugging
 
     // Update projectiles
     setProjectiles((prev) => {
@@ -175,9 +160,8 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
               .clone()
               .sub(enemyPos)
               .normalize();
-            handleEnemyPositionChange(
-              enemyPosition.clone().sub(pushDirection.multiplyScalar(0.5))
-            );
+            // DEBUG: Enemy tank push disabled
+            // handleEnemyPositionChange(enemyPosition.clone().sub(pushDirection.multiplyScalar(0.5)));
             return false;
           }
         }
