@@ -25,6 +25,8 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
   const [isMachineGunFiring, setIsMachineGunFiring] = useState(false);
   const [isMoving, setIsMoving] = useState(false);
   const [cannonCooldown, setCannonCooldown] = useState(false);
+  const [projectiles, setProjectiles] = useState<Array<{id: number, position: THREE.Vector3, velocity: THREE.Vector3, type: 'shell' | 'bullet', life: number}>>([]);
+  const projectileId = useRef(0);
   const lastMovingState = useRef(false);
   const gunRef = useRef<THREE.Group>(null);
   const turretRef = useRef<THREE.Group>(null);
@@ -81,12 +83,34 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
         setShowShell(true);
         setCannonCooldown(true);
 
-        // Play cannon firing sound (only first bomb)
+        // Fire cannon shell
+        if (tankRef.current) {
+          const tankRotation = tankRef.current.rotation.y;
+          const gunPos = new THREE.Vector3();
+          tankRef.current.getWorldPosition(gunPos);
+          gunPos.y += 0.9; // Gun height
+          gunPos.x += Math.cos(tankRotation) * 3; // Gun forward position
+          gunPos.z -= Math.sin(tankRotation) * 3;
+          
+          const shellVelocity = new THREE.Vector3(
+            Math.cos(tankRotation) * 0.8,
+            0,
+            -Math.sin(tankRotation) * 0.8
+          );
+          
+          setProjectiles(prev => [...prev, {
+            id: projectileId.current++,
+            position: gunPos.clone(),
+            velocity: shellVelocity,
+            type: 'shell',
+            life: Infinity
+          }]);
+        }
+
+        // Play cannon firing sound
         if (cannonAudioRef.current) {
           cannonAudioRef.current.currentTime = 0;
           cannonAudioRef.current.play();
-
-          // Stop after first bomb sound (adjust timing as needed)
           setTimeout(() => {
             if (cannonAudioRef.current) {
               cannonAudioRef.current.pause();
@@ -112,8 +136,32 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
         }
 
         machineGunInterval.current = setInterval(() => {
-          // Machine gun rapid fire effect
-        }, 100);
+          // Fire machine gun bullets
+          if (tankRef.current) {
+            const tankRotation = tankRef.current.rotation.y;
+            const gunPos = new THREE.Vector3();
+            tankRef.current.getWorldPosition(gunPos);
+            gunPos.y += 1.08; // Machine gun height
+            gunPos.x += Math.cos(tankRotation) * 1.5;
+            gunPos.z -= Math.sin(tankRotation) * 1.5;
+            
+            // Add spread for machine gun
+            const spread = (Math.random() - 0.5) * 0.1;
+            const bulletVelocity = new THREE.Vector3(
+              Math.cos(tankRotation + spread) * 0.6,
+              0,
+              -Math.sin(tankRotation + spread) * 0.6
+            );
+            
+            setProjectiles(prev => [...prev, {
+              id: projectileId.current++,
+              position: gunPos.clone(),
+              velocity: bulletVelocity,
+              type: 'bullet',
+              life: Infinity
+            }]);
+          }
+        }, 5);
         }
       }
     };
@@ -257,6 +305,13 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
         turretRef.current.position.x = 0;
       }
 
+      // Update projectiles
+      setProjectiles(prev => prev.map(projectile => {
+        // Movement without gravity for straight trajectories
+        projectile.position.add(projectile.velocity);
+        return projectile;
+      })); // Projectiles now have infinite range
+
       // Animate material
       if (materialRef.current) {
         const time = state.clock.getElapsedTime();
@@ -286,6 +341,29 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
 
   return (
     <>
+      {/* Projectiles */}
+      {projectiles.map(projectile => {
+        const tankRotation = tankRef.current?.rotation.y || 0;
+        return (
+          <mesh 
+            key={projectile.id} 
+            position={[projectile.position.x, projectile.position.y, projectile.position.z]}
+            rotation={[0, tankRotation, Math.PI / 2]}
+          >
+            {projectile.type === 'shell' ? (
+              <cylinderGeometry args={[0.05, 0.05, 0.3, 8]} />
+            ) : (
+              <cylinderGeometry args={[0.015, 0.015, 0.08, 6]} />
+            )}
+            <meshStandardMaterial 
+              color={projectile.type === 'shell' ? '#ffaa00' : '#ffff00'}
+              emissive={projectile.type === 'shell' ? '#ff4400' : '#ffaa00'}
+              emissiveIntensity={2}
+            />
+          </mesh>
+        );
+      })}
+      
       {/* T-34 Tank - movable */}
       <group ref={tankRef} scale={[0.8, 0.8, 0.8]} position={[0, 0.1, 0]}>
         <mesh
