@@ -58,7 +58,7 @@ const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({
     const facingPlayer = Math.abs(rotDiff) < 0.1;
     
     if (facingPlayer) {
-      const BOUNDARY = 20;
+      const BOUNDARY = 45;
       const nearBoundary = Math.abs(enemyPos.x) > BOUNDARY || Math.abs(enemyPos.z) > BOUNDARY;
       const moveSpeed = 0.08;
       

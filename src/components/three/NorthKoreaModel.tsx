@@ -37,8 +37,8 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
   const [enemyRotation, setEnemyRotation] = useState(0);
   const [isPlayerMoving, setIsPlayerMoving] = useState(false);
 
-  // Boundary limits for 50x50 flag ground
-  const BOUNDARY_LIMIT = 24; // Slightly less than 25 to keep tanks fully on ground
+  // Boundary limits for 100x100 flag ground
+  const BOUNDARY_LIMIT = 48; // Slightly less than 50 to keep tanks fully on ground
 
   const clampPosition = (position: THREE.Vector3) => {
     return new THREE.Vector3(
@@ -242,7 +242,7 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
         position={[0, -0.5, 0]}
         receiveShadow
       >
-        <planeGeometry args={[50, 50]} />
+        <planeGeometry args={[100, 100]} />
         <meshStandardMaterial
           map={useLoader(THREE.TextureLoader, bgSource)}
           metalness={0.2}
