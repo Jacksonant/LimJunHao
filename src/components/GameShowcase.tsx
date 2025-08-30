@@ -96,7 +96,7 @@ const GameShowcase: React.FC = () => {
               gap: '0.5rem',
               flexWrap: 'wrap'
             }}>
-              {games[activeGame].tech.map((tech, index) => (
+              {games[activeGame].tech.map((tech) => (
                 <span
                   key={tech}
                   style={{

@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { gsap } from 'gsap';
 
 export interface ScrollSection {
   id: string;
@@ -11,7 +10,6 @@ export interface ScrollSection {
 
 export const useScrollInteractions = () => {
   const [sections, setSections] = useState<ScrollSection[]>([]);
-  const [currentSection, setCurrentSection] = useState(0);
   const [scrollProgress, setScrollProgress] = useState(0);
   const sectionsRef = useRef<Map<string, HTMLElement>>(new Map());
 
@@ -56,7 +54,6 @@ export const useScrollInteractions = () => {
 
   return {
     sections,
-    currentSection,
     scrollProgress,
     registerSection
   };

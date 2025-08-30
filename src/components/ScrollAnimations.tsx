@@ -6,15 +6,13 @@ interface ScrollAnimationProps {
   animation?: 'fadeIn' | 'slideUp' | 'slideLeft' | 'slideRight' | 'scale' | 'rotate';
   delay?: number;
   duration?: number;
-  trigger?: string;
 }
 
 const ScrollAnimations: React.FC<ScrollAnimationProps> = ({
   children,
   animation = 'fadeIn',
   delay = 0,
-  duration = 1,
-  trigger
+  duration = 1
 }) => {
   const elementRef = useRef<HTMLDivElement>(null);
 

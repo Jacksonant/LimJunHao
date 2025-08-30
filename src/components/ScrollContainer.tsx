@@ -1,79 +1,85 @@
-import React, { useEffect, useRef } from 'react';
-import { useScrollInteractions } from '../hooks/useScrollInteractions';
-import NorthKorea from './NorthKorea';
-import MySection from './MySection';
+import React, { useEffect, useRef } from "react";
+import { useScrollInteractions } from "../hooks/useScrollInteractions";
+import NorthKorea from "./NorthKorea";
+import MySection from "./MySection";
 
 const ScrollContainer: React.FC = () => {
-  const { registerSection, scrollProgress, currentSection } = useScrollInteractions();
+  const { registerSection, scrollProgress } = useScrollInteractions();
   const heroRef = useRef<HTMLDivElement>(null);
   const myRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (heroRef.current) registerSection('hero', heroRef.current);
-    if (myRef.current) registerSection('my', myRef.current);
+    if (heroRef.current) registerSection("hero", heroRef.current);
+    if (myRef.current) registerSection("my", myRef.current);
   }, [registerSection]);
 
   return (
     <div className="scroll-container">
       {/* Progress Bar */}
-      <div 
+      <div
         style={{
-          position: 'fixed',
+          position: "fixed",
           top: 0,
           left: 0,
           width: `${scrollProgress * 100}%`,
-          height: '3px',
-          background: 'linear-gradient(90deg, #6366f1, #8b5cf6, #06b6d4)',
+          height: "3px",
+          background: "linear-gradient(90deg, #6366f1, #8b5cf6, #06b6d4)",
           zIndex: 1000,
-          transition: 'width 0.1s ease'
+          transition: "width 0.1s ease",
         }}
       />
 
       {/* Section Navigation */}
-      <nav 
+      <nav
         style={{
-          position: 'fixed',
-          right: '2rem',
-          top: '50%',
-          transform: 'translateY(-50%)',
+          position: "fixed",
+          right: "2rem",
+          top: "50%",
+          transform: "translateY(-50%)",
           zIndex: 100,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '1rem'
+          display: "flex",
+          flexDirection: "column",
+          gap: "1rem",
         }}
       >
-        {['Tank', 'About'].map((name, index) => {
+        {["Tank", "About"].map((name, index) => {
           const refs = [heroRef, myRef];
           return (
             <div
               key={name}
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                cursor: 'pointer'
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                cursor: "pointer",
               }}
               onClick={() => {
-                refs[index].current?.scrollIntoView({ behavior: 'smooth' });
+                refs[index].current?.scrollIntoView({ behavior: "smooth" });
               }}
             >
               <div
                 style={{
-                  width: currentSection === index ? '40px' : '20px',
-                  height: '3px',
-                  background: currentSection === index ? '#6366f1' : 'rgba(255,255,255,0.5)',
-                  borderRadius: '2px',
-                  transition: 'all 0.3s ease'
+                  width: scrollProgress > index * 0.5 ? "40px" : "20px",
+                  height: "3px",
+                  background:
+                    scrollProgress > index * 0.5
+                      ? "#6366f1"
+                      : "rgba(255,255,255,0.5)",
+                  borderRadius: "2px",
+                  transition: "all 0.3s ease",
                 }}
               />
               <span
                 style={{
-                  color: currentSection === index ? '#6366f1' : 'rgba(255,255,255,0.7)',
-                  fontSize: '0.8rem',
-                  fontWeight: '600',
-                  opacity: currentSection === index ? 1 : 0,
-                  transition: 'all 0.3s ease',
-                  whiteSpace: 'nowrap'
+                  color:
+                    scrollProgress > index * 0.5
+                      ? "#6366f1"
+                      : "rgba(255,255,255,0.7)",
+                  fontSize: "0.8rem",
+                  fontWeight: "600",
+                  opacity: scrollProgress > index * 0.5 ? 1 : 0,
+                  transition: "all 0.3s ease",
+                  whiteSpace: "nowrap",
                 }}
               >
                 {name}

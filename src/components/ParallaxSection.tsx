@@ -1,9 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from "react";
 
 interface ParallaxSectionProps {
   children: React.ReactNode;
   speed?: number;
-  direction?: 'up' | 'down' | 'left' | 'right';
+  direction?: "up" | "down" | "left" | "right";
   className?: string;
   style?: React.CSSProperties;
 }
@@ -11,33 +11,31 @@ interface ParallaxSectionProps {
 const ParallaxSection: React.FC<ParallaxSectionProps> = ({
   children,
   speed = 0.5,
-  direction = 'up',
+  direction = "up",
   className,
-  style
+  style,
 }) => {
   const elementRef = useRef<HTMLDivElement>(null);
-  const [offset, setOffset] = useState(0);
 
   useEffect(() => {
     const handleScroll = () => {
       if (!elementRef.current) return;
 
-      const rect = elementRef.current.getBoundingClientRect();
       const scrolled = window.pageYOffset;
       const rate = scrolled * -speed;
 
-      let transform = '';
+      let transform = "";
       switch (direction) {
-        case 'up':
+        case "up":
           transform = `translateY(${rate}px)`;
           break;
-        case 'down':
+        case "down":
           transform = `translateY(${-rate}px)`;
           break;
-        case 'left':
+        case "left":
           transform = `translateX(${rate}px)`;
           break;
-        case 'right':
+        case "right":
           transform = `translateX(${-rate}px)`;
           break;
       }
@@ -47,8 +45,8 @@ const ParallaxSection: React.FC<ParallaxSectionProps> = ({
       }
     };
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
   }, [speed, direction]);
 
   return (
@@ -56,8 +54,8 @@ const ParallaxSection: React.FC<ParallaxSectionProps> = ({
       ref={elementRef}
       className={className}
       style={{
-        willChange: 'transform',
-        ...style
+        willChange: "transform",
+        ...style,
       }}
     >
       {children}
