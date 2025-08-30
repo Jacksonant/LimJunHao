@@ -188,7 +188,7 @@ const PlayerTank = React.forwardRef<THREE.Group, PlayerTankProps>(({
       materialRef.current.emissiveIntensity = 0.5 + Math.sin(time) * 0.2;
     }
     if (tankRef.current && isActive) {
-      const speed = 0.15;
+      const speed = 0.25;
       const moving = keys.w || keys.s || keys.a || keys.d;
       
       onMovingChange(moving);
