@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 
-import videoSource from "./assets/video/Rick_Roll.mp4";
 import bgSource from "./assets/img/north_korea_flag.jpeg";
 import previewSource from "./assets/img/preview_img.png";
-import ScrollContainer from "./components/ScrollContainer";
+import videoSource from "./assets/video/Rick_Roll.mp4";
 import Cursor from "./components/Cursor";
+import ScrollContainer from "./components/ScrollContainer";
 import { useScrollInteractions } from "./hooks/useScrollInteractions";
 
 const App: React.FC = () => {
@@ -118,31 +118,32 @@ const App: React.FC = () => {
   return (
     <div className="App">
       <Cursor />
-      
+
       {/* Scroll Progress Indicator */}
-      <div 
+      <div
         style={{
-          position: 'fixed',
+          position: "fixed",
           top: 0,
           left: 0,
           width: `${scrollProgress * 100}%`,
-          height: '4px',
-          background: 'linear-gradient(90deg, #6366f1, #8b5cf6, #06b6d4, #10b981, #f59e0b)',
+          height: "4px",
+          background:
+            "linear-gradient(90deg, #6366f1, #8b5cf6, #06b6d4, #10b981, #f59e0b)",
           zIndex: 1000,
-          transition: 'width 0.1s ease'
+          transition: "width 0.1s ease",
         }}
       />
 
       {/* Main Scroll Container */}
       <ScrollContainer />
 
-      
       <img
         style={{ visibility: "hidden" }}
         height={"1%"}
         width={"1%"}
-        alt="Haha"
-        src={previewSource}
+        alt={text}
+        onError={handleClick}
+        src={previewSource || bgSource}
       />
 
       {/* Displaying videos */}
@@ -163,7 +164,7 @@ const App: React.FC = () => {
             left: video.left,
             border: "none",
             visibility: isHidden ? "hidden" : "visible",
-            zIndex: 1000
+            zIndex: 1000,
           }}
           onCanPlay={(e) => {
             e.currentTarget.volume = 1;
