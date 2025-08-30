@@ -14,7 +14,15 @@ interface PlayerTankProps {
   onPositionChange: (position: THREE.Vector3) => void;
   onRotationChange: (rotation: number) => void;
   onMovingChange: (moving: boolean) => void;
-  onProjectile: (projectile: any) => void;
+  onProjectile: (projectile: {
+    id: number;
+    position: THREE.Vector3;
+    velocity: THREE.Vector3;
+    type: 'shell' | 'bullet';
+    life: number;
+    rotation: number;
+    owner: 'player' | 'enemy';
+  }) => void;
 }
 
 const PlayerTank = React.forwardRef<THREE.Group, PlayerTankProps>(({ 

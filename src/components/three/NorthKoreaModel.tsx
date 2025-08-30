@@ -98,23 +98,24 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
       }
 
       if (isPlayerMoving) {
+        
         // Force camera to south-top position when moving
         const tankRotation = playerTankRef.current.rotation.y;
-        const cameraDistance = 11;
-        const cameraHeight = 4.7;
+        const cameraDistance = 12;
+        const cameraHeight = 6;
 
         const cameraX = worldPos.x - Math.cos(tankRotation) * cameraDistance;
         const cameraZ = worldPos.z + Math.sin(tankRotation) * cameraDistance;
 
         state.camera.position.set(cameraX, worldPos.y + cameraHeight, cameraZ);
-        state.camera.lookAt(worldPos);
+        state.camera.lookAt(worldPos.x, worldPos.y + 3, worldPos.z);
 
         if (state.controls && "enabled" in state.controls) {
           (state.controls as OrbitControls).enabled = false;
         }
       } else {
         // Enable orbit controls when not moving but keep looking at tank
-        state.camera.lookAt(worldPos);
+        state.camera.lookAt(worldPos.x, worldPos.y + 3, worldPos.z);
         
         if (state.controls && "enabled" in state.controls) {
           (state.controls as OrbitControls).enabled = true;
