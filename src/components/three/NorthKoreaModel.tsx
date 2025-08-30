@@ -366,7 +366,7 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
       })}
       
       {/* T-34 Tank - movable */}
-      <group ref={tankRef} scale={[0.8, 0.8, 0.8]} position={[0, 0.1, 0]}>
+      <group ref={tankRef} scale={[0.8, 0.8, 0.8]} position={[0, -0.05, 0]}>
         <mesh
           castShadow
           receiveShadow
