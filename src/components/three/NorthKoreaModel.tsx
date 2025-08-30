@@ -7,7 +7,13 @@ import shellFiringSound from "../../assets/audio/shell-firing.mp3";
 import tankMovingSound from "../../assets/audio/tank-moving.mp3";
 import bgSource from "../../assets/img/north_korea_flag.jpeg";
 
-const NorthKoreaModel: React.FC = () => {
+interface NorthKoreaModelProps {
+  isActive?: boolean;
+}
+
+const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
+  isActive = false,
+}) => {
   // Create a T-34 tank using primitives
   const tankRef = useRef<THREE.Group>(null);
   const materialRef = useRef<THREE.MeshStandardMaterial>(null);
@@ -18,6 +24,7 @@ const NorthKoreaModel: React.FC = () => {
   const [isMachineGunFiring, setIsMachineGunFiring] = useState(false);
   const [isMoving, setIsMoving] = useState(false);
   const [cannonCooldown, setCannonCooldown] = useState(false);
+  const lastMovingState = useRef(false);
   const gunRef = useRef<THREE.Group>(null);
   const turretRef = useRef<THREE.Group>(null);
   const cannonAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -40,6 +47,8 @@ const NorthKoreaModel: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    if (!isActive) return;
+
     const handleKeyDown = (event: KeyboardEvent) => {
       const key = event.key.toLowerCase();
       if (
@@ -54,6 +63,7 @@ const NorthKoreaModel: React.FC = () => {
           "arrowright",
         ].includes(key)
       ) {
+        event.preventDefault();
         setKeys((prev) => ({
           ...prev,
           w: key === "w" || key === "arrowup" || prev.w,
@@ -64,6 +74,7 @@ const NorthKoreaModel: React.FC = () => {
       }
 
       if (key === "enter" && !isFiring && !cannonCooldown) {
+        event.preventDefault();
         setIsFiring(true);
         setShowSmoke(true);
         setShowShell(true);
@@ -73,7 +84,7 @@ const NorthKoreaModel: React.FC = () => {
         if (cannonAudioRef.current) {
           cannonAudioRef.current.currentTime = 0;
           cannonAudioRef.current.play();
-          
+
           // Stop after first bomb sound (adjust timing as needed)
           setTimeout(() => {
             if (cannonAudioRef.current) {
@@ -89,6 +100,7 @@ const NorthKoreaModel: React.FC = () => {
       }
 
       if (key === " " && !isMachineGunFiring) {
+        event.preventDefault();
         setIsMachineGunFiring(true);
 
         // Play machine gun sound
@@ -104,6 +116,7 @@ const NorthKoreaModel: React.FC = () => {
     };
 
     const handleKeyUp = (event: KeyboardEvent) => {
+      if (!isActive) return;
       const key = event.key.toLowerCase();
       if (
         [
@@ -142,22 +155,58 @@ const NorthKoreaModel: React.FC = () => {
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("keyup", handleKeyUp);
+    if (isActive) {
+      window.addEventListener("keydown", handleKeyDown);
+      window.addEventListener("keyup", handleKeyUp);
+    }
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [cannonCooldown, isFiring, isMachineGunFiring]);
+  }, [cannonCooldown, isFiring, isMachineGunFiring, isActive]);
 
   useFrame((state) => {
-    if (tankRef.current) {
+    if (tankRef.current && isActive) {
       const speed = 0.05;
 
       // Tank movement
       const moving = keys.w || keys.s || keys.a || keys.d;
       setIsMoving(moving);
+
+      const worldPos = new THREE.Vector3();
+      tankRef.current.getWorldPosition(worldPos);
+
+      // Always keep tank as orbit center
+      if (state.controls && "enabled" in state.controls) {
+        const controls = state.controls as any;
+        controls.target.copy(worldPos);
+      }
+
+      if (moving) {
+        // Force camera to south-top position when moving
+        const tankRotation = tankRef.current.rotation.y;
+        const cameraDistance = 8;
+        const cameraHeight = 10;
+
+        const cameraX = worldPos.x - Math.cos(tankRotation) * cameraDistance;
+        const cameraZ = worldPos.z + Math.sin(tankRotation) * cameraDistance;
+
+        state.camera.position.set(cameraX, worldPos.y + cameraHeight, cameraZ);
+        state.camera.lookAt(worldPos);
+
+        if (state.controls && "enabled" in state.controls) {
+          (state.controls as any).enabled = false;
+        }
+      } else {
+        // Enable orbit controls when stopped but keep looking at tank
+        state.camera.lookAt(worldPos);
+        if (state.controls && "enabled" in state.controls) {
+          (state.controls as any).enabled = true;
+        }
+      }
+
+      lastMovingState.current = moving;
 
       // Engine sound control
       if (moving && engineAudioRef.current) {

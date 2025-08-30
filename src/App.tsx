@@ -3,16 +3,18 @@ import React, { useEffect, useRef, useState } from "react";
 import videoSource from "./assets/video/Rick_Roll.mp4";
 import bgSource from "./assets/img/north_korea_flag.jpeg";
 import previewSource from "./assets/img/preview_img.png";
-import NorthKorea from "./components/NorthKorea";
-import LifeStory from "./components/LifeStory";
+import ScrollContainer from "./components/ScrollContainer";
+import Cursor from "./components/Cursor";
+import { useScrollInteractions } from "./hooks/useScrollInteractions";
 
 const App: React.FC = () => {
+  const { scrollProgress } = useScrollInteractions();
   const [videos, setVideos] = useState<
     { id: number; top: string; left: string }[]
   >([]);
-  const [isHidden, setHide] = useState(true); // State to track if the videos should be hidden
-  const [text, setText] = useState("Welcome to Lim Jun Hao's site"); // State to track the text
-  const videoRefs = useRef<(HTMLVideoElement | null)[]>([]); // Ref to store video elements
+  const [isHidden, setHide] = useState(true);
+  const [text, setText] = useState("Welcome to Lim Jun Hao's site");
+  const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   const shouldOpenTab = useRef(false);
 
   // Function to generate random positions for videos
@@ -115,39 +117,24 @@ const App: React.FC = () => {
 
   return (
     <div className="App">
-      {/* North Korea Section */}
-      <div
+      <Cursor />
+      
+      {/* Scroll Progress Indicator */}
+      <div 
         style={{
-          position: "relative",
-          height: "100vh",
-          width: "100vw",
-          backgroundImage: `url(${bgSource})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          color: "white",
-          fontSize: "3rem",
-          textAlign: "center",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: `${scrollProgress * 100}%`,
+          height: '4px',
+          background: 'linear-gradient(90deg, #6366f1, #8b5cf6, #06b6d4, #10b981, #f59e0b)',
+          zIndex: 1000,
+          transition: 'width 0.1s ease'
         }}
-      >
-        <div>
-          <p
-            onClick={handleClick}
-            style={{ color: "black", cursor: "pointer" }}
-          >
-            {text}
-          </p>
-          {/* <NorthKorea /> */}
-        </div>
-      </div>
+      />
 
-      {/* North Korea Section */}
-      <NorthKorea />
-
-      {/* Life Story Section */}
-      <LifeStory />
+      {/* Main Scroll Container */}
+      <ScrollContainer />
 
       
       <img
