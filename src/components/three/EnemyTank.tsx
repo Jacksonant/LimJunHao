@@ -83,13 +83,16 @@ const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({
       }
     }
     
-    // 3. SHOOTING: Main gun and continuous machine guns
+    // 3. LINE OF SIGHT CHECK
+    const hasLineOfSight = facingPlayer && distanceToPlayer <= 25;
+    
+    // 4. SHOOTING: Main gun and continuous machine guns (only with line of sight)
     const currentTime = state.clock.getElapsedTime();
     const aimAccuracy = Math.abs(rotDiff) < 0.2;
     
     // Main gun - slower interval
     const mainGunInterval = 2.0;
-    if (currentTime - lastShot.current > mainGunInterval && aimAccuracy) {
+    if (currentTime - lastShot.current > mainGunInterval && aimAccuracy && hasLineOfSight) {
       lastShot.current = currentTime;
       
       const gunPos = enemyPos.clone();
@@ -118,9 +121,9 @@ const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({
       setTimeout(() => setIsFiring(false), 300);
     }
     
-    // Machine guns - continuous rapid fire when facing player
+    // Machine guns - continuous rapid fire when facing player and has line of sight
     const mgInterval = 0.1; // Very fast
-    if (currentTime - lastMGShot.current > mgInterval && aimAccuracy) {
+    if (currentTime - lastMGShot.current > mgInterval && aimAccuracy && hasLineOfSight) {
       lastMGShot.current = currentTime;
       
       // Machine gun positions
