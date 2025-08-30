@@ -9,11 +9,13 @@ import EnemyTank from "./EnemyTank";
 interface NorthKoreaModelProps {
   isActive?: boolean;
   onPositionsUpdate?: (playerPos: THREE.Vector3, enemyPos: THREE.Vector3) => void;
+  onHealthUpdate?: (playerHealth: number, enemyHealth: number) => void;
 }
 
 const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
   isActive = false,
   onPositionsUpdate,
+  onHealthUpdate,
 }) => {
   const playerTankRef = useRef<THREE.Group>(null);
   const enemyTankRef = useRef<THREE.Group>(null);
@@ -39,6 +41,10 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
   const [enemyRotation, setEnemyRotation] = useState(0);
   const [isPlayerMoving, setIsPlayerMoving] = useState(false);
   const [isRearView, setIsRearView] = useState(false);
+  const [playerHealth, setPlayerHealth] = useState(100);
+  const [enemyHealth, setEnemyHealth] = useState(1000);
+  const [playerDestroyed, setPlayerDestroyed] = useState(false);
+  const [enemyDestroyed, setEnemyDestroyed] = useState(false);
 
   // Boundary limits for 100x100 flag ground
   const BOUNDARY_LIMIT = 48; // Slightly less than 50 to keep tanks fully on ground
@@ -151,22 +157,31 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
           return false;
         }
 
-        // Tank-projectile collisions
-        if (playerTankRef.current && projectile.owner === "enemy") {
+        // Tank-projectile collisions with damage
+        if (playerTankRef.current && projectile.owner === "enemy" && !playerDestroyed) {
           const playerPos = new THREE.Vector3();
           playerTankRef.current.getWorldPosition(playerPos);
           if (projectile.position.distanceTo(playerPos) < 2) {
-            handlePlayerPositionChange(
-              playerPosition.clone().sub(projectile.position.clone().sub(playerPos).normalize().multiplyScalar(0.5))
-            );
+            const damage = projectile.type === "shell" ? 16 : 0.002;
+            setPlayerHealth(prev => {
+              const newHealth = Math.max(0, prev - damage);
+              if (newHealth <= 0) setPlayerDestroyed(true);
+              return newHealth;
+            });
             return false;
           }
         }
 
-        if (enemyTankRef.current && projectile.owner === "player") {
+        if (enemyTankRef.current && projectile.owner === "player" && !enemyDestroyed) {
           const enemyPos = new THREE.Vector3();
           enemyTankRef.current.getWorldPosition(enemyPos);
           if (projectile.position.distanceTo(enemyPos) < 2) {
+            const damage = projectile.type === "shell" ? 8 : 0.0008;
+            setEnemyHealth(prev => {
+              const newHealth = Math.max(0, prev - damage);
+              if (newHealth <= 0) setEnemyDestroyed(true);
+              return newHealth;
+            });
             return false;
           }
         }
@@ -181,6 +196,11 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
     if (onPositionsUpdate) {
       onPositionsUpdate(playerPosition, enemyPosition);
     }
+    
+    // Update health callback
+    if (onHealthUpdate) {
+      onHealthUpdate(playerHealth, enemyHealth);
+    }
   });
 
   return (
@@ -194,6 +214,7 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
         onRotationChange={setPlayerRotation}
         onMovingChange={setIsPlayerMoving}
         onRearViewChange={setIsRearView}
+        isDestroyed={playerDestroyed}
         onProjectile={handlePlayerProjectile}
       />
 
@@ -205,6 +226,7 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
         onRotationChange={setEnemyRotation}
         onProjectile={handleEnemyProjectile}
         playerPosition={playerPosition}
+        isDestroyed={enemyDestroyed}
       />
 
       {/* Projectiles */}
@@ -246,6 +268,21 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
           />
         </mesh>
       ))}
+
+      {/* Destruction Effects */}
+      {playerDestroyed && (
+        <mesh position={[playerPosition.x, playerPosition.y + 1, playerPosition.z]}>
+          <sphereGeometry args={[2, 8, 8]} />
+          <meshStandardMaterial color="#ff4400" emissive="#ff0000" emissiveIntensity={2} transparent opacity={0.7} />
+        </mesh>
+      )}
+      
+      {enemyDestroyed && (
+        <mesh position={[enemyPosition.x, enemyPosition.y + 1, enemyPosition.z]}>
+          <sphereGeometry args={[2, 8, 8]} />
+          <meshStandardMaterial color="#ff4400" emissive="#ff0000" emissiveIntensity={2} transparent opacity={0.7} />
+        </mesh>
+      )}
 
       {/* Environment - static */}
       <mesh

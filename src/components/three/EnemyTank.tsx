@@ -17,6 +17,7 @@ interface EnemyTankProps {
     owner: 'player' | 'enemy';
   }) => void;
   playerPosition: THREE.Vector3;
+  isDestroyed?: boolean;
 }
 
 const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({ 
@@ -25,7 +26,8 @@ const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({
   onPositionChange, 
   onRotationChange, 
   onProjectile, 
-  playerPosition 
+  playerPosition,
+  isDestroyed = false 
 }, ref) => {
   const tankRef = ref as React.RefObject<THREE.Group>;
   const lastShot = useRef(0);
@@ -35,7 +37,7 @@ const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({
   const [isMGFiring, setIsMGFiring] = useState(false);
 
   useFrame((state) => {
-    if (!tankRef.current) return;
+    if (!tankRef.current || isDestroyed) return;
 
     const enemyPos = position.clone();
     const distanceToPlayer = enemyPos.distanceTo(playerPosition);

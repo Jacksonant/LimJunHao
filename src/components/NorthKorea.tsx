@@ -14,6 +14,16 @@ const NorthKorea: React.FC = () => {
   const lastScrollTime = useRef(0);
   const [playerPosition, setPlayerPosition] = useState(new THREE.Vector3(0, -0.05, 0));
   const [enemyPosition, setEnemyPosition] = useState(new THREE.Vector3(15, -0.05, 0));
+  const [playerHealth, setPlayerHealth] = useState(100);
+  const [enemyHealth, setEnemyHealth] = useState(1000);
+
+  const getHealthColor = (healthPercent: number) => {
+    if (healthPercent > 75) return '#00ff00'; // Green
+    if (healthPercent > 50) return '#ffff00'; // Yellow
+    if (healthPercent > 25) return '#ff8800'; // Orange
+    if (healthPercent > 10) return '#ff0000'; // Red
+    return '#800000'; // Dark red
+  };
 
   useEffect(() => {
     const handleWheel = () => {
@@ -137,6 +147,10 @@ const NorthKorea: React.FC = () => {
               setPlayerPosition(playerPos);
               setEnemyPosition(enemyPos);
             }}
+            onHealthUpdate={(playerHP, enemyHP) => {
+              setPlayerHealth(playerHP);
+              setEnemyHealth(enemyHP);
+            }}
           />
           <OrbitControls
             enabled={isPlaying}
@@ -159,6 +173,44 @@ const NorthKorea: React.FC = () => {
           enemyPosition={enemyPosition}
           boundaryLimit={48}
         />
+      )}
+
+      {/* Player Health Bar - Bottom */}
+      {isPlaying && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: "20px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 20,
+            textAlign: "center"
+          }}
+        >
+          <div style={{ color: getHealthColor(playerHealth), fontSize: "14px", marginBottom: "4px" }}>Player: {playerHealth}/100</div>
+          <div style={{ width: "300px", height: "12px", backgroundColor: "rgba(0,0,0,0.7)", borderRadius: "6px", overflow: "hidden", border: "2px solid rgba(0,255,0,0.5)" }}>
+            <div style={{ width: `${playerHealth}%`, height: "100%", backgroundColor: getHealthColor(playerHealth), transition: "all 0.3s ease" }} />
+          </div>
+        </div>
+      )}
+
+      {/* Enemy Health Bar - Top */}
+      {isPlaying && (
+        <div
+          style={{
+            position: "absolute",
+            top: "20px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 20,
+            textAlign: "center"
+          }}
+        >
+          <div style={{ color: getHealthColor(enemyHealth / 10), fontSize: "14px", marginBottom: "4px" }}>Enemy: {enemyHealth}/1000</div>
+          <div style={{ width: "400px", height: "12px", backgroundColor: "rgba(0,0,0,0.7)", borderRadius: "6px", overflow: "hidden", border: "2px solid rgba(0,255,0,0.5)" }}>
+            <div style={{ width: `${enemyHealth / 10}%`, height: "100%", backgroundColor: getHealthColor(enemyHealth / 10), transition: "all 0.3s ease" }} />
+          </div>
+        </div>
       )}
 
       {/* Control Instructions - Only show when playing */}

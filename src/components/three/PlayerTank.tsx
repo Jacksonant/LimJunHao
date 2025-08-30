@@ -15,6 +15,7 @@ interface PlayerTankProps {
   onRotationChange: (rotation: number) => void;
   onMovingChange: (moving: boolean) => void;
   onRearViewChange: (rearView: boolean) => void;
+  isDestroyed?: boolean;
   onProjectile: (projectile: {
     id: number;
     position: THREE.Vector3;
@@ -33,7 +34,8 @@ const PlayerTank = React.forwardRef<THREE.Group, PlayerTankProps>(({
   onPositionChange, 
   onRotationChange, 
   onMovingChange,
-  onRearViewChange, 
+  onRearViewChange,
+  isDestroyed = false, 
   onProjectile 
 }, ref) => {
   const tankRef = ref as React.RefObject<THREE.Group>;
@@ -199,7 +201,7 @@ const PlayerTank = React.forwardRef<THREE.Group, PlayerTankProps>(({
       const time = state.clock.getElapsedTime();
       materialRef.current.emissiveIntensity = 0.5 + Math.sin(time) * 0.2;
     }
-    if (tankRef.current && isActive) {
+    if (tankRef.current && isActive && !isDestroyed) {
       const speed = 0.25;
       const moving = keys.w || keys.s || keys.a || keys.d;
       
@@ -232,8 +234,10 @@ const PlayerTank = React.forwardRef<THREE.Group, PlayerTankProps>(({
       if (keys.a) newRotation += 0.03;
       if (keys.d) newRotation -= 0.03;
       
-      if (keys.w || keys.s) onPositionChange(newPosition);
-      if (keys.a || keys.d) onRotationChange(newRotation);
+      if (!isDestroyed) {
+        if (keys.w || keys.s) onPositionChange(newPosition);
+        if (keys.a || keys.d) onRotationChange(newRotation);
+      }
 
       // Update tank transform
       tankRef.current.position.copy(position);
