@@ -8,10 +8,12 @@ import EnemyTank from "./EnemyTank";
 
 interface NorthKoreaModelProps {
   isActive?: boolean;
+  onPositionsUpdate?: (playerPos: THREE.Vector3, enemyPos: THREE.Vector3) => void;
 }
 
 const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
   isActive = false,
+  onPositionsUpdate,
 }) => {
   const playerTankRef = useRef<THREE.Group>(null);
   const enemyTankRef = useRef<THREE.Group>(null);
@@ -174,6 +176,11 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
 
       return remaining;
     });
+    
+    // Update positions callback
+    if (onPositionsUpdate) {
+      onPositionsUpdate(playerPosition, enemyPosition);
+    }
   });
 
   return (

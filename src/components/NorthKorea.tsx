@@ -3,6 +3,8 @@ import { Canvas } from "@react-three/fiber";
 import React, { useEffect, useRef, useState } from "react";
 import { useLoading } from "../contexts/LoadingContext";
 import NorthKoreaModel from "./three/NorthKoreaModel";
+import Minimap from "./three/Minimap";
+import * as THREE from "three";
 
 const NorthKorea: React.FC = () => {
   const { completeLoading } = useLoading();
@@ -10,6 +12,8 @@ const NorthKorea: React.FC = () => {
   const [scrollAttempts, setScrollAttempts] = useState(0);
   const [showScrollHint, setShowScrollHint] = useState(false);
   const lastScrollTime = useRef(0);
+  const [playerPosition, setPlayerPosition] = useState(new THREE.Vector3(0, -0.05, 0));
+  const [enemyPosition, setEnemyPosition] = useState(new THREE.Vector3(15, -0.05, 0));
 
   useEffect(() => {
     const handleWheel = () => {
@@ -127,7 +131,13 @@ const NorthKorea: React.FC = () => {
             castShadow
           />
           <pointLight position={[-10, -10, -10]} intensity={0.5} />
-          <NorthKoreaModel isActive={isPlaying} />
+          <NorthKoreaModel 
+            isActive={isPlaying} 
+            onPositionsUpdate={(playerPos, enemyPos) => {
+              setPlayerPosition(playerPos);
+              setEnemyPosition(enemyPos);
+            }}
+          />
           <OrbitControls
             enabled={isPlaying}
             enableZoom={isPlaying}
@@ -141,6 +151,15 @@ const NorthKorea: React.FC = () => {
           />
         </Canvas>
       </div>
+
+      {/* Minimap - Only show when playing */}
+      {isPlaying && (
+        <Minimap
+          playerPosition={playerPosition}
+          enemyPosition={enemyPosition}
+          boundaryLimit={48}
+        />
+      )}
 
       {/* Control Instructions - Only show when playing */}
       {isPlaying && (
