@@ -37,6 +37,25 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
   const [enemyRotation, setEnemyRotation] = useState(0);
   const [isPlayerMoving, setIsPlayerMoving] = useState(false);
 
+  // Boundary limits for 50x50 flag ground
+  const BOUNDARY_LIMIT = 24; // Slightly less than 25 to keep tanks fully on ground
+
+  const clampPosition = (position: THREE.Vector3) => {
+    return new THREE.Vector3(
+      Math.max(-BOUNDARY_LIMIT, Math.min(BOUNDARY_LIMIT, position.x)),
+      Math.max(-0.05, position.y), // Ensure tanks stay above ground plane
+      Math.max(-BOUNDARY_LIMIT, Math.min(BOUNDARY_LIMIT, position.z))
+    );
+  };
+
+  const handlePlayerPositionChange = (newPosition: THREE.Vector3) => {
+    setPlayerPosition(clampPosition(newPosition));
+  };
+
+  const handleEnemyPositionChange = (newPosition: THREE.Vector3) => {
+    setEnemyPosition(clampPosition(newPosition));
+  };
+
   const handlePlayerProjectile = (projectile: {
     id: number;
     position: THREE.Vector3;
@@ -103,6 +122,24 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
       }
     }
 
+    // Tank-to-tank collision detection
+    if (playerTankRef.current && enemyTankRef.current) {
+      const distance = playerPosition.distanceTo(enemyPosition);
+      const minDistance = 6; // Minimum distance between tanks
+      
+      if (distance < minDistance) {
+        const pushDirection = playerPosition.clone().sub(enemyPosition).normalize();
+        const pushForce = 0.05; // Slower momentum
+        
+        // Push tanks apart with slower momentum
+        const playerPush = pushDirection.clone().multiplyScalar(pushForce);
+        const enemyPush = pushDirection.clone().multiplyScalar(-pushForce);
+        
+        handlePlayerPositionChange(playerPosition.clone().add(playerPush));
+        handleEnemyPositionChange(enemyPosition.clone().add(enemyPush));
+      }
+    }
+
     // Update projectiles
     setProjectiles((prev) => {
       const updated = prev.map((projectile) => ({
@@ -122,8 +159,8 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
               .clone()
               .sub(playerPos)
               .normalize();
-            setPlayerPosition((prev) =>
-              prev.clone().sub(pushDirection.multiplyScalar(0.5))
+            handlePlayerPositionChange(
+              playerPosition.clone().sub(pushDirection.multiplyScalar(0.5))
             );
             return false;
           }
@@ -138,8 +175,8 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
               .clone()
               .sub(enemyPos)
               .normalize();
-            setEnemyPosition((prev) =>
-              prev.clone().sub(pushDirection.multiplyScalar(0.5))
+            handleEnemyPositionChange(
+              enemyPosition.clone().sub(pushDirection.multiplyScalar(0.5))
             );
             return false;
           }
@@ -159,7 +196,7 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
         isActive={isActive}
         position={playerPosition}
         rotation={playerRotation}
-        onPositionChange={setPlayerPosition}
+        onPositionChange={handlePlayerPositionChange}
         onRotationChange={setPlayerRotation}
         onMovingChange={setIsPlayerMoving}
         onProjectile={handlePlayerProjectile}
@@ -169,7 +206,7 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
         ref={enemyTankRef}
         position={enemyPosition}
         rotation={enemyRotation}
-        onPositionChange={setEnemyPosition}
+        onPositionChange={handleEnemyPositionChange}
         onRotationChange={setEnemyRotation}
         onProjectile={handleEnemyProjectile}
         playerPosition={playerPosition}
