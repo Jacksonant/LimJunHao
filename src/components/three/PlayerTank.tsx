@@ -14,6 +14,7 @@ interface PlayerTankProps {
   onPositionChange: (position: THREE.Vector3) => void;
   onRotationChange: (rotation: number) => void;
   onMovingChange: (moving: boolean) => void;
+  onRearViewChange: (rearView: boolean) => void;
   onProjectile: (projectile: {
     id: number;
     position: THREE.Vector3;
@@ -31,14 +32,15 @@ const PlayerTank = React.forwardRef<THREE.Group, PlayerTankProps>(({
   rotation, 
   onPositionChange, 
   onRotationChange, 
-  onMovingChange, 
+  onMovingChange,
+  onRearViewChange, 
   onProjectile 
 }, ref) => {
   const tankRef = ref as React.RefObject<THREE.Group>;
   const materialRef = useRef<THREE.MeshStandardMaterial>(null);
   const gunRef = useRef<THREE.Group>(null);
   const turretRef = useRef<THREE.Group>(null);
-  const [keys, setKeys] = useState({ w: false, a: false, s: false, d: false });
+  const [keys, setKeys] = useState({ w: false, a: false, s: false, d: false, b: false });
   const [isFiring, setIsFiring] = useState(false);
   const [showSmoke, setShowSmoke] = useState(false);
   const [showShell, setShowShell] = useState(false);
@@ -62,7 +64,7 @@ const PlayerTank = React.forwardRef<THREE.Group, PlayerTankProps>(({
 
     const handleKeyDown = (event: KeyboardEvent) => {
       const key = event.key.toLowerCase();
-      if (["w", "a", "s", "d", "arrowup", "arrowleft", "arrowdown", "arrowright"].includes(key)) {
+      if (["w", "a", "s", "d", "b", "arrowup", "arrowleft", "arrowdown", "arrowright"].includes(key)) {
         event.preventDefault();
         setKeys(prev => ({
           ...prev,
@@ -70,6 +72,7 @@ const PlayerTank = React.forwardRef<THREE.Group, PlayerTankProps>(({
           a: key === "a" || key === "arrowleft" || prev.a,
           s: key === "s" || key === "arrowdown" || prev.s,
           d: key === "d" || key === "arrowright" || prev.d,
+          b: key === "b" || prev.b,
         }));
       }
 
@@ -157,13 +160,14 @@ const PlayerTank = React.forwardRef<THREE.Group, PlayerTankProps>(({
     const handleKeyUp = (event: KeyboardEvent) => {
       if (!isActive) return;
       const key = event.key.toLowerCase();
-      if (["w", "a", "s", "d", "arrowup", "arrowleft", "arrowdown", "arrowright"].includes(key)) {
+      if (["w", "a", "s", "d", "b", "arrowup", "arrowleft", "arrowdown", "arrowright"].includes(key)) {
         setKeys(prev => ({
           ...prev,
           w: key !== "w" && key !== "arrowup" && prev.w,
           a: key !== "a" && key !== "arrowleft" && prev.a,
           s: key !== "s" && key !== "arrowdown" && prev.s,
           d: key !== "d" && key !== "arrowright" && prev.d,
+          b: key !== "b" && prev.b,
         }));
       }
 
@@ -200,6 +204,7 @@ const PlayerTank = React.forwardRef<THREE.Group, PlayerTankProps>(({
       const moving = keys.w || keys.s || keys.a || keys.d;
       
       onMovingChange(moving);
+      onRearViewChange(keys.b);
 
       // Engine sound
       if (moving && engineAudioRef.current) {

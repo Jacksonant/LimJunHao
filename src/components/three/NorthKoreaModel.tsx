@@ -36,6 +36,7 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
   );
   const [enemyRotation, setEnemyRotation] = useState(0);
   const [isPlayerMoving, setIsPlayerMoving] = useState(false);
+  const [isRearView, setIsRearView] = useState(false);
 
   // Boundary limits for 100x100 flag ground
   const BOUNDARY_LIMIT = 48; // Slightly less than 50 to keep tanks fully on ground
@@ -104,8 +105,14 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
         const cameraDistance = 12;
         const cameraHeight = 6;
 
-        const cameraX = worldPos.x - Math.cos(tankRotation) * cameraDistance;
-        const cameraZ = worldPos.z + Math.sin(tankRotation) * cameraDistance;
+        let cameraX, cameraZ;
+        if (isRearView) {
+          cameraX = worldPos.x + Math.cos(tankRotation) * cameraDistance;
+          cameraZ = worldPos.z - Math.sin(tankRotation) * cameraDistance;
+        } else {
+          cameraX = worldPos.x - Math.cos(tankRotation) * cameraDistance;
+          cameraZ = worldPos.z + Math.sin(tankRotation) * cameraDistance;
+        }
 
         state.camera.position.set(cameraX, worldPos.y + cameraHeight, cameraZ);
         state.camera.lookAt(worldPos.x, worldPos.y + 3, worldPos.z);
@@ -179,6 +186,7 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
         onPositionChange={handlePlayerPositionChange}
         onRotationChange={setPlayerRotation}
         onMovingChange={setIsPlayerMoving}
+        onRearViewChange={setIsRearView}
         onProjectile={handlePlayerProjectile}
       />
 
