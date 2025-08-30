@@ -100,9 +100,10 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
         setTimeout(() => setCannonCooldown(false), 1500);
       }
 
-      if (key === " " && !isMachineGunFiring) {
+      if (key === " ") {
         event.preventDefault();
-        setIsMachineGunFiring(true);
+        if (!isMachineGunFiring) {
+          setIsMachineGunFiring(true);
 
         // Play machine gun sound
         if (machineGunAudioRef.current && machineGunAudioRef.current.paused) {
@@ -113,6 +114,7 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
         machineGunInterval.current = setInterval(() => {
           // Machine gun rapid fire effect
         }, 100);
+        }
       }
     };
 
@@ -141,6 +143,7 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
       }
 
       if (key === " ") {
+        event.preventDefault();
         setIsMachineGunFiring(false);
 
         // Stop machine gun sound
