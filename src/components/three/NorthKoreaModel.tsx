@@ -6,6 +6,7 @@ import machineGunSound from "../../assets/audio/machine-gun-firing.mp3";
 import shellFiringSound from "../../assets/audio/shell-firing.mp3";
 import tankMovingSound from "../../assets/audio/tank-moving.mp3";
 import bgSource from "../../assets/img/north_korea_flag.jpeg";
+import { OrbitControls } from "three/examples/jsm/Addons.js";
 
 interface NorthKoreaModelProps {
   isActive?: boolean;
@@ -179,15 +180,15 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
 
       // Always keep tank as orbit center
       if (state.controls && "enabled" in state.controls) {
-        const controls = state.controls as any;
+        const controls = state.controls as OrbitControls;
         controls.target.copy(worldPos);
       }
 
       if (moving) {
         // Force camera to south-top position when moving
         const tankRotation = tankRef.current.rotation.y;
-        const cameraDistance = 8;
-        const cameraHeight = 10;
+        const cameraDistance = 11;
+        const cameraHeight = 4.7;
 
         const cameraX = worldPos.x - Math.cos(tankRotation) * cameraDistance;
         const cameraZ = worldPos.z + Math.sin(tankRotation) * cameraDistance;
@@ -196,13 +197,14 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
         state.camera.lookAt(worldPos);
 
         if (state.controls && "enabled" in state.controls) {
-          (state.controls as any).enabled = false;
+          (state.controls as OrbitControls).enabled = false;
         }
       } else {
         // Enable orbit controls when stopped but keep looking at tank
         state.camera.lookAt(worldPos);
+
         if (state.controls && "enabled" in state.controls) {
-          (state.controls as any).enabled = true;
+          (state.controls as OrbitControls).enabled = true;
         }
       }
 
