@@ -125,27 +125,29 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
     // DEBUG: Collision system disabled
     // Tank-to-tank collision detection disabled for debugging
 
-    // Update projectiles
+    // Update projectiles with cleanup
     setProjectiles((prev) => {
       const updated = prev.map((projectile) => ({
         ...projectile,
         position: projectile.position.clone().add(projectile.velocity),
+        life: projectile.life - 1
       }));
 
-      // Check collisions
+      // Check collisions and cleanup
       const remaining = updated.filter((projectile) => {
+        // Remove projectiles that are too far or too old
+        const distanceFromCenter = projectile.position.length();
+        if (distanceFromCenter > 60 || projectile.life <= 0) {
+          return false;
+        }
+
         // Tank-projectile collisions
         if (playerTankRef.current && projectile.owner === "enemy") {
           const playerPos = new THREE.Vector3();
           playerTankRef.current.getWorldPosition(playerPos);
           if (projectile.position.distanceTo(playerPos) < 2) {
-            // Push player tank backward
-            const pushDirection = projectile.position
-              .clone()
-              .sub(playerPos)
-              .normalize();
             handlePlayerPositionChange(
-              playerPosition.clone().sub(pushDirection.multiplyScalar(0.5))
+              playerPosition.clone().sub(projectile.position.clone().sub(playerPos).normalize().multiplyScalar(0.5))
             );
             return false;
           }
@@ -155,13 +157,6 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
           const enemyPos = new THREE.Vector3();
           enemyTankRef.current.getWorldPosition(enemyPos);
           if (projectile.position.distanceTo(enemyPos) < 2) {
-            // Push enemy tank backward
-            const pushDirection = projectile.position
-              .clone()
-              .sub(enemyPos)
-              .normalize();
-            // DEBUG: Enemy tank push disabled
-            // handleEnemyPositionChange(enemyPosition.clone().sub(pushDirection.multiplyScalar(0.5)));
             return false;
           }
         }

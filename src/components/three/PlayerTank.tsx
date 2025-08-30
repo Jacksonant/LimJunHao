@@ -90,7 +90,7 @@ const PlayerTank = React.forwardRef<THREE.Group, PlayerTankProps>(({
           position: gunPos.clone(),
           velocity: shellVelocity,
           type: 'shell',
-          life: Infinity,
+          life: 300,
           rotation: tankRotation,
           owner: 'player'
         });
@@ -136,7 +136,7 @@ const PlayerTank = React.forwardRef<THREE.Group, PlayerTankProps>(({
                 position: gunPos.clone(),
                 velocity: bulletVelocity,
                 type: 'bullet',
-                life: Infinity,
+                life: 200,
                 rotation: tankRotation + spread,
                 owner: 'player'
               });
@@ -205,7 +205,7 @@ const PlayerTank = React.forwardRef<THREE.Group, PlayerTankProps>(({
       }
 
       // Movement
-      let newPosition = position.clone();
+      const newPosition = position.clone();
       let newRotation = rotation;
       
       if (keys.w) {

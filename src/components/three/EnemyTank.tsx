@@ -1,5 +1,5 @@
 import { useFrame } from "@react-three/fiber";
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import * as THREE from "three";
 
 interface EnemyTankProps {
@@ -31,9 +31,8 @@ const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({
   const lastShot = useRef(0);
   const lastMGShot = useRef(0);
   const projectileId = useRef(1000);
-  const searchRotation = useRef(0);
-  const lastPlayerSeen = useRef(0);
-  const searchDirection = useRef(1); // 1 or -1 for search direction
+  const [isFiring, setIsFiring] = useState(false);
+  const [isMGFiring, setIsMGFiring] = useState(false);
 
   useFrame((state) => {
     if (!tankRef.current) return;
@@ -109,10 +108,14 @@ const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({
         position: gunPos,
         velocity: shellVelocity,
         type: 'shell',
-        life: Infinity,
+        life: 300,
         rotation: newRotation,
         owner: 'enemy'
       });
+      
+      // Main gun firing effect
+      setIsFiring(true);
+      setTimeout(() => setIsFiring(false), 300);
     }
     
     // Machine guns - continuous rapid fire when facing player
@@ -152,7 +155,7 @@ const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({
         position: mgPos1,
         velocity: mgVelocity.clone(),
         type: 'bullet',
-        life: Infinity,
+        life: 200,
         rotation: newRotation,
         owner: 'enemy'
       });
@@ -162,7 +165,7 @@ const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({
         position: mgPos2,
         velocity: mgVelocity.clone(),
         type: 'bullet',
-        life: Infinity,
+        life: 200,
         rotation: newRotation,
         owner: 'enemy'
       });
@@ -172,10 +175,14 @@ const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({
         position: mgPosFront,
         velocity: mgVelocity.clone(),
         type: 'bullet',
-        life: Infinity,
+        life: 200,
         rotation: newRotation,
         owner: 'enemy'
       });
+      
+      // Machine gun firing effect
+      setIsMGFiring(true);
+      setTimeout(() => setIsMGFiring(false), 100);
     }
 
     // Update tank transform
@@ -209,6 +216,20 @@ const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({
           <cylinderGeometry args={[0.08, 0.08, 5.5, 16]} />
           <meshStandardMaterial color="#0a0a0a" roughness={0.2} metalness={0.9} />
         </mesh>
+        
+        {/* Main gun muzzle flash */}
+        {isFiring && (
+          <>
+            <mesh position={[6.5, 1.1, 0]}>
+              <sphereGeometry args={[0.5, 8, 8]} />
+              <meshStandardMaterial color="#ff0000" emissive="#ff4400" emissiveIntensity={4} />
+            </mesh>
+            <mesh position={[7.0, 1.1, 0]}>
+              <coneGeometry args={[0.3, 1.0, 8]} />
+              <meshStandardMaterial color="#ff4400" emissive="#ff6600" emissiveIntensity={3} />
+            </mesh>
+          </>
+        )}
 
         {/* Muzzle brake */}
         <mesh position={[6.2, 1.1, 0]} rotation={[0, 0, Math.PI / 2]}>
@@ -225,6 +246,24 @@ const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({
           <cylinderGeometry args={[0.04, 0.04, 1.2, 12]} />
           <meshStandardMaterial color="#0a0a0a" roughness={0.2} metalness={0.9} />
         </mesh>
+        
+        {/* Machine gun muzzle flashes */}
+        {isMGFiring && (
+          <>
+            <mesh position={[2.2, 1.3, 0.4]}>
+              <sphereGeometry args={[0.1, 6, 6]} />
+              <meshStandardMaterial color="#ff0000" emissive="#ff8800" emissiveIntensity={4} />
+            </mesh>
+            <mesh position={[2.2, 1.3, -0.4]}>
+              <sphereGeometry args={[0.1, 6, 6]} />
+              <meshStandardMaterial color="#ff0000" emissive="#ff8800" emissiveIntensity={4} />
+            </mesh>
+            <mesh position={[2.5, 0.8, 0]}>
+              <sphereGeometry args={[0.08, 6, 6]} />
+              <meshStandardMaterial color="#ff0000" emissive="#ff8800" emissiveIntensity={4} />
+            </mesh>
+          </>
+        )}
 
         {/* Commander's cupola */}
         <mesh position={[-0.5, 1.6, 0]}>
