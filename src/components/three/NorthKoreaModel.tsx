@@ -45,6 +45,7 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
   const [enemyHealth, setEnemyHealth] = useState(1000);
   const [playerDestroyed, setPlayerDestroyed] = useState(false);
   const [enemyDestroyed, setEnemyDestroyed] = useState(false);
+  const [animationTime, setAnimationTime] = useState(0);
 
   // Boundary limits for 100x100 flag ground
   const BOUNDARY_LIMIT = 48; // Slightly less than 50 to keep tanks fully on ground
@@ -96,6 +97,8 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
   };
 
   useFrame((state) => {
+    const time = state.clock.getElapsedTime();
+    setAnimationTime(time);
     if (playerTankRef.current && isActive) {
       const worldPos = new THREE.Vector3();
       playerTankRef.current.getWorldPosition(worldPos);
@@ -271,17 +274,102 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
 
       {/* Destruction Effects */}
       {playerDestroyed && (
-        <mesh position={[playerPosition.x, playerPosition.y + 1, playerPosition.z]}>
-          <sphereGeometry args={[2, 8, 8]} />
-          <meshStandardMaterial color="#ff4400" emissive="#ff0000" emissiveIntensity={2} transparent opacity={0.7} />
-        </mesh>
+        <group position={[playerPosition.x, playerPosition.y, playerPosition.z]}>
+          {/* Fire Effect */}
+          <mesh position={[0, 1.2, 0]}>
+            <coneGeometry args={[0.8, 2, 5]} />
+            <meshStandardMaterial color="#ff4400" emissive="#ff2200" emissiveIntensity={5} transparent opacity={0.8} />
+          </mesh>
+          <mesh position={[0.4, 1.5, 0.2]} rotation={[0, 0, 0.3]}>
+            <coneGeometry args={[0.5, 1.5, 4]} />
+            <meshStandardMaterial color="#ff8800" emissive="#ff4400" emissiveIntensity={6} transparent opacity={0.7} />
+          </mesh>
+          <mesh position={[-0.3, 1.3, -0.1]} rotation={[0, 0, -0.2]}>
+            <coneGeometry args={[0.4, 1.2, 4]} />
+            <meshStandardMaterial color="#ffaa00" emissive="#ff6600" emissiveIntensity={7} transparent opacity={0.6} />
+          </mesh>
+          {/* Smoke */}
+          <group>
+            <mesh position={[0, 3.5, 0]} scale={[1.5, 0.8, 1.2]}>
+              <sphereGeometry args={[1.2, 6, 4]} />
+              <meshStandardMaterial color="#444444" transparent opacity={Math.sin(animationTime * 3) > 0 ? 0.5 : 0.1} />
+            </mesh>
+            <mesh position={[0.8, 3.8, 0.3]} scale={[1.2, 0.6, 1]}>
+              <sphereGeometry args={[1, 5, 4]} />
+              <meshStandardMaterial color="#555555" transparent opacity={Math.sin(animationTime * 2.8) > 0 ? 0.4 : 0.1} />
+            </mesh>
+            <mesh position={[-0.6, 4.2, -0.2]} scale={[1, 0.7, 0.9]}>
+              <sphereGeometry args={[0.8, 4, 3]} />
+              <meshStandardMaterial color="#666666" transparent opacity={Math.sin(animationTime * 3.2) > 0 ? 0.3 : 0.1} />
+            </mesh>
+          </group>
+          {/* Burnt Tank Hull */}
+          <mesh position={[0, 0.2, 0]}>
+            <boxGeometry args={[4.4, 0.6, 2.2]} />
+            <meshStandardMaterial color="#1a1a1a" roughness={1} metalness={0} emissive="#330000" emissiveIntensity={0.2} />
+          </mesh>
+          {/* Burnt Turret */}
+          <mesh position={[0, 0.8, 0]}>
+            <cylinderGeometry args={[0.8, 1, 0.6, 6]} />
+            <meshStandardMaterial color="#0d0d0d" roughness={1} metalness={0} />
+          </mesh>
+        </group>
       )}
       
       {enemyDestroyed && (
-        <mesh position={[enemyPosition.x, enemyPosition.y + 1, enemyPosition.z]}>
-          <sphereGeometry args={[2, 8, 8]} />
-          <meshStandardMaterial color="#ff4400" emissive="#ff0000" emissiveIntensity={2} transparent opacity={0.7} />
-        </mesh>
+        <group position={[enemyPosition.x, enemyPosition.y, enemyPosition.z]}>
+          {/* Fire Effect */}
+          <mesh position={[0, 1.5, 0]}>
+            <coneGeometry args={[1, 2.5, 5]} />
+            <meshStandardMaterial color="#ff4400" emissive="#ff2200" emissiveIntensity={5} transparent opacity={0.8} />
+          </mesh>
+          <mesh position={[0.5, 1.8, 0.3]} rotation={[0, 0, 0.4]}>
+            <coneGeometry args={[0.6, 2, 4]} />
+            <meshStandardMaterial color="#ff8800" emissive="#ff4400" emissiveIntensity={6} transparent opacity={0.7} />
+          </mesh>
+          <mesh position={[-0.4, 1.6, -0.2]} rotation={[0, 0, -0.3]}>
+            <coneGeometry args={[0.5, 1.8, 4]} />
+            <meshStandardMaterial color="#ffaa00" emissive="#ff6600" emissiveIntensity={7} transparent opacity={0.6} />
+          </mesh>
+          <mesh position={[0.2, 2.2, 0.1]} rotation={[0, 0, 0.2]}>
+            <coneGeometry args={[0.3, 1.2, 3]} />
+            <meshStandardMaterial color="#ffdd00" emissive="#ffaa00" emissiveIntensity={8} transparent opacity={0.5} />
+          </mesh>
+          {/* Smoke */}
+          <group>
+            <mesh position={[0, 4.5, 0]} scale={[2, 1, 1.5]}>
+              <sphereGeometry args={[1.5, 6, 4]} />
+              <meshStandardMaterial color="#444444" transparent opacity={Math.sin(animationTime * 2.5) > 0 ? 0.6 : 0.1} />
+            </mesh>
+            <mesh position={[1, 5, 0.4]} scale={[1.5, 0.8, 1.2]}>
+              <sphereGeometry args={[1.2, 5, 4]} />
+              <meshStandardMaterial color="#555555" transparent opacity={Math.sin(animationTime * 2.3) > 0 ? 0.5 : 0.1} />
+            </mesh>
+            <mesh position={[-0.8, 5.2, -0.3]} scale={[1.3, 0.9, 1.1]}>
+              <sphereGeometry args={[1, 4, 3]} />
+              <meshStandardMaterial color="#666666" transparent opacity={Math.sin(animationTime * 2.7) > 0 ? 0.4 : 0.1} />
+            </mesh>
+            <mesh position={[0.3, 5.8, 0.1]} scale={[1, 0.6, 0.8]}>
+              <sphereGeometry args={[0.8, 4, 3]} />
+              <meshStandardMaterial color="#777777" transparent opacity={Math.sin(animationTime * 2.1) > 0 ? 0.3 : 0.1} />
+            </mesh>
+          </group>
+          {/* Burnt Tank Hull */}
+          <mesh position={[0, 0.3, 0]}>
+            <boxGeometry args={[5.2, 0.8, 2.6]} />
+            <meshStandardMaterial color="#1a1a1a" roughness={1} metalness={0} emissive="#330000" emissiveIntensity={0.2} />
+          </mesh>
+          {/* Burnt Turret */}
+          <mesh position={[0, 1, 0]}>
+            <cylinderGeometry args={[1, 1.2, 0.8, 8]} />
+            <meshStandardMaterial color="#0d0d0d" roughness={1} metalness={0} />
+          </mesh>
+          {/* Destroyed Gun Barrel */}
+          <mesh position={[1.5, 1.1, 0]} rotation={[0, 0, Math.PI / 2]}>
+            <cylinderGeometry args={[0.06, 0.06, 2, 8]} />
+            <meshStandardMaterial color="#0d0d0d" roughness={1} />
+          </mesh>
+        </group>
       )}
 
       {/* Environment - static */}
