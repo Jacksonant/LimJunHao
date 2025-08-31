@@ -200,6 +200,15 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
           playerTankRef.current.getWorldPosition(playerPos);
           if (projectile.position.distanceTo(playerPos) < 2) {
             const damage = projectile.type === "shell" ? 16 : 0.002;
+            
+            // Shell momentum pushback
+            if (projectile.type === "shell") {
+              const pushDirection = projectile.velocity.clone().normalize();
+              const pushDistance = 0.8;
+              const newPos = playerPos.clone().add(pushDirection.multiplyScalar(pushDistance));
+              handlePlayerPositionChange(newPos);
+            }
+            
             setPlayerHealth((prev) => {
               const newHealth = Math.max(0, prev - damage);
               if (newHealth <= 0) {
@@ -221,6 +230,15 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
           enemyTankRef.current.getWorldPosition(enemyPos);
           if (projectile.position.distanceTo(enemyPos) < 2) {
             const damage = projectile.type === "shell" ? 8 : 0.0008;
+            
+            // Shell momentum pushback
+            if (projectile.type === "shell") {
+              const pushDirection = projectile.velocity.clone().normalize();
+              const pushDistance = 0.8;
+              const newPos = enemyPos.clone().add(pushDirection.multiplyScalar(pushDistance));
+              handleEnemyPositionChange(newPos);
+            }
+            
             setEnemyHealth((prev) => {
               const newHealth = Math.max(0, prev - damage);
               if (newHealth <= 0) {
