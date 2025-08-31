@@ -16,6 +16,7 @@ interface PlayerTankProps {
   onMovingChange: (moving: boolean) => void;
   onRearViewChange: (rearView: boolean) => void;
   isDestroyed?: boolean;
+  gameOver?: boolean;
   onProjectile: (projectile: {
     id: number;
     position: THREE.Vector3;
@@ -35,7 +36,8 @@ const PlayerTank = React.forwardRef<THREE.Group, PlayerTankProps>(({
   onRotationChange, 
   onMovingChange,
   onRearViewChange,
-  isDestroyed = false, 
+  isDestroyed = false,
+  gameOver = false, 
   onProjectile 
 }, ref) => {
   const tankRef = ref as React.RefObject<THREE.Group>;
@@ -78,7 +80,7 @@ const PlayerTank = React.forwardRef<THREE.Group, PlayerTankProps>(({
         }));
       }
 
-      if (key === "enter" && !isFiring && !cannonCooldown && tankRef.current) {
+      if (key === "enter" && !isFiring && !cannonCooldown && !gameOver && tankRef.current) {
         event.preventDefault();
         setIsFiring(true);
         setShowSmoke(true);
@@ -121,7 +123,7 @@ const PlayerTank = React.forwardRef<THREE.Group, PlayerTankProps>(({
 
       if (key === " ") {
         event.preventDefault();
-        if (!isMachineGunFiring) {
+        if (!isMachineGunFiring && !gameOver) {
           setIsMachineGunFiring(true);
           if (machineGunAudioRef.current?.paused) {
             machineGunAudioRef.current.loop = true;

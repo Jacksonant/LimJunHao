@@ -18,6 +18,7 @@ interface EnemyTankProps {
   }) => void;
   playerPosition: THREE.Vector3;
   isDestroyed?: boolean;
+  gameOver?: boolean;
 }
 
 const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({ 
@@ -27,7 +28,8 @@ const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({
   onRotationChange, 
   onProjectile, 
   playerPosition,
-  isDestroyed = false 
+  isDestroyed = false,
+  gameOver = false 
 }, ref) => {
   const tankRef = ref as React.RefObject<THREE.Group>;
   const lastShot = useRef(0);
@@ -94,7 +96,7 @@ const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({
     
     // Main gun - slower interval
     const mainGunInterval = 2.0;
-    if (currentTime - lastShot.current > mainGunInterval && aimAccuracy && hasLineOfSight) {
+    if (currentTime - lastShot.current > mainGunInterval && aimAccuracy && hasLineOfSight && !gameOver) {
       lastShot.current = currentTime;
       
       const gunPos = enemyPos.clone();
@@ -125,7 +127,7 @@ const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({
     
     // Machine guns - continuous rapid fire when facing player and has line of sight
     const mgInterval = 0.1; // Very fast
-    if (currentTime - lastMGShot.current > mgInterval && aimAccuracy && hasLineOfSight) {
+    if (currentTime - lastMGShot.current > mgInterval && aimAccuracy && hasLineOfSight && !gameOver) {
       lastMGShot.current = currentTime;
       
       // Machine gun positions

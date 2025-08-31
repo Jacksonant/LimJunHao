@@ -218,6 +218,7 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
         onMovingChange={setIsPlayerMoving}
         onRearViewChange={setIsRearView}
         isDestroyed={playerDestroyed}
+        gameOver={playerDestroyed || enemyDestroyed}
         onProjectile={handlePlayerProjectile}
       />
 
@@ -230,6 +231,7 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
         onProjectile={handleEnemyProjectile}
         playerPosition={playerPosition}
         isDestroyed={enemyDestroyed}
+        gameOver={playerDestroyed || enemyDestroyed}
       />
 
       {/* Projectiles */}
