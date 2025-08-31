@@ -1,16 +1,19 @@
 import { useFrame, useLoader } from "@react-three/fiber";
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState } from "react";
 import * as THREE from "three";
-import bgSource from "../../assets/img/north_korea_flag.jpeg";
 import { OrbitControls } from "three/examples/jsm/Addons.js";
-import PlayerTank from "./PlayerTank";
+import bgSource from "../../assets/img/north_korea_flag.jpeg";
 import EnemyTank from "./EnemyTank";
+import PlayerTank from "./PlayerTank";
 
 interface NorthKoreaModelProps {
   isActive?: boolean;
-  onPositionsUpdate?: (playerPos: THREE.Vector3, enemyPos: THREE.Vector3) => void;
+  onPositionsUpdate?: (
+    playerPos: THREE.Vector3,
+    enemyPos: THREE.Vector3
+  ) => void;
   onHealthUpdate?: (playerHealth: number, enemyHealth: number) => void;
-  onGameOver?: (winner: 'player' | 'enemy') => void;
+  onGameOver?: (winner: "player" | "enemy") => void;
 }
 
 const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
@@ -101,7 +104,7 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
   useFrame((state) => {
     // Pause all game logic when not active
     if (!isActive) return;
-    
+
     const time = state.clock.getElapsedTime();
     setAnimationTime(time);
     if (playerTankRef.current) {
@@ -115,7 +118,6 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
       }
 
       if (isPlayerMoving) {
-        
         // Force camera to south-top position when moving
         const tankRotation = playerTankRef.current.rotation.y;
         const cameraDistance = 12;
@@ -139,22 +141,45 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
       } else {
         // Enable orbit controls when not moving but keep looking at tank
         state.camera.lookAt(worldPos.x, worldPos.y + 3, worldPos.z);
-        
+
         if (state.controls && "enabled" in state.controls) {
           (state.controls as OrbitControls).enabled = true;
         }
       }
     }
 
-    // DEBUG: Collision system disabled
-    // Tank-to-tank collision detection disabled for debugging
+    // Tank-to-tank collision detection
+    if (playerTankRef.current && enemyTankRef.current) {
+      const playerPos = new THREE.Vector3();
+      const enemyPos = new THREE.Vector3();
+      playerTankRef.current.getWorldPosition(playerPos);
+      enemyTankRef.current.getWorldPosition(enemyPos);
+      
+      const distance = playerPos.distanceTo(enemyPos);
+      const minDistance = 4; // Minimum distance between tanks
+      
+      if (distance < minDistance) {
+        // Calculate separation vector
+        const separation = playerPos.clone().sub(enemyPos).normalize();
+        const overlap = minDistance - distance;
+        
+        // Push tanks apart
+        const pushDistance = overlap * 0.5;
+        const newPlayerPos = playerPos.clone().add(separation.clone().multiplyScalar(pushDistance));
+        const newEnemyPos = enemyPos.clone().sub(separation.clone().multiplyScalar(pushDistance));
+        
+        // Apply clamping and update positions
+        handlePlayerPositionChange(newPlayerPos);
+        handleEnemyPositionChange(newEnemyPos);
+      }
+    }
 
     // Update projectiles with cleanup
     setProjectiles((prev) => {
       const updated = prev.map((projectile) => ({
         ...projectile,
         position: projectile.position.clone().add(projectile.velocity),
-        life: projectile.life - 1
+        life: projectile.life - 1,
       }));
 
       // Check collisions and cleanup
@@ -166,16 +191,20 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
         }
 
         // Tank-projectile collisions with damage
-        if (playerTankRef.current && projectile.owner === "enemy" && !playerDestroyed) {
+        if (
+          playerTankRef.current &&
+          projectile.owner === "enemy" &&
+          !playerDestroyed
+        ) {
           const playerPos = new THREE.Vector3();
           playerTankRef.current.getWorldPosition(playerPos);
           if (projectile.position.distanceTo(playerPos) < 2) {
             const damage = projectile.type === "shell" ? 16 : 0.002;
-            setPlayerHealth(prev => {
+            setPlayerHealth((prev) => {
               const newHealth = Math.max(0, prev - damage);
               if (newHealth <= 0) {
                 setPlayerDestroyed(true);
-                if (onGameOver) onGameOver('enemy');
+                if (onGameOver) onGameOver("enemy");
               }
               return newHealth;
             });
@@ -183,16 +212,20 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
           }
         }
 
-        if (enemyTankRef.current && projectile.owner === "player" && !enemyDestroyed) {
+        if (
+          enemyTankRef.current &&
+          projectile.owner === "player" &&
+          !enemyDestroyed
+        ) {
           const enemyPos = new THREE.Vector3();
           enemyTankRef.current.getWorldPosition(enemyPos);
           if (projectile.position.distanceTo(enemyPos) < 2) {
             const damage = projectile.type === "shell" ? 8 : 0.0008;
-            setEnemyHealth(prev => {
+            setEnemyHealth((prev) => {
               const newHealth = Math.max(0, prev - damage);
               if (newHealth <= 0) {
                 setEnemyDestroyed(true);
-                if (onGameOver) onGameOver('player');
+                if (onGameOver) onGameOver("player");
               }
               return newHealth;
             });
@@ -205,12 +238,12 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
 
       return remaining;
     });
-    
+
     // Update positions callback
     if (onPositionsUpdate) {
       onPositionsUpdate(playerPosition, enemyPosition);
     }
-    
+
     // Update health callback
     if (onHealthUpdate) {
       onHealthUpdate(playerHealth, enemyHealth);
@@ -288,39 +321,77 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
 
       {/* Destruction Effects */}
       {playerDestroyed && (
-        <group position={[playerPosition.x, playerPosition.y, playerPosition.z]}>
+        <group
+          position={[playerPosition.x, playerPosition.y, playerPosition.z]}
+        >
           {/* Fire Effect */}
           <mesh position={[0, 1.2, 0]}>
             <coneGeometry args={[0.8, 2, 5]} />
-            <meshStandardMaterial color="#ff4400" emissive="#ff2200" emissiveIntensity={5} transparent opacity={0.8} />
+            <meshStandardMaterial
+              color="#ff4400"
+              emissive="#ff2200"
+              emissiveIntensity={5}
+              transparent
+              opacity={0.8}
+            />
           </mesh>
           <mesh position={[0.4, 1.5, 0.2]} rotation={[0, 0, 0.3]}>
             <coneGeometry args={[0.5, 1.5, 4]} />
-            <meshStandardMaterial color="#ff8800" emissive="#ff4400" emissiveIntensity={6} transparent opacity={0.7} />
+            <meshStandardMaterial
+              color="#ff8800"
+              emissive="#ff4400"
+              emissiveIntensity={6}
+              transparent
+              opacity={0.7}
+            />
           </mesh>
           <mesh position={[-0.3, 1.3, -0.1]} rotation={[0, 0, -0.2]}>
             <coneGeometry args={[0.4, 1.2, 4]} />
-            <meshStandardMaterial color="#ffaa00" emissive="#ff6600" emissiveIntensity={7} transparent opacity={0.6} />
+            <meshStandardMaterial
+              color="#ffaa00"
+              emissive="#ff6600"
+              emissiveIntensity={7}
+              transparent
+              opacity={0.6}
+            />
           </mesh>
           {/* Smoke */}
           <group>
             <mesh position={[0, 3.5, 0]} scale={[1.5, 0.8, 1.2]}>
               <sphereGeometry args={[1.2, 6, 4]} />
-              <meshStandardMaterial color="#444444" transparent opacity={Math.sin(animationTime * 3) > 0 ? 0.5 : 0.1} />
+              <meshStandardMaterial
+                color="#444444"
+                transparent
+                opacity={Math.sin(animationTime * 3) > 0 ? 0.5 : 0.1}
+              />
             </mesh>
             <mesh position={[0.8, 3.8, 0.3]} scale={[1.2, 0.6, 1]}>
               <sphereGeometry args={[1, 5, 4]} />
-              <meshStandardMaterial color="#555555" transparent opacity={Math.sin(animationTime * 2.8) > 0 ? 0.4 : 0.1} />
+              <meshStandardMaterial
+                color="#555555"
+                transparent
+                opacity={Math.sin(animationTime * 2.8) > 0 ? 0.4 : 0.1}
+              />
             </mesh>
             <mesh position={[-0.6, 4.2, -0.2]} scale={[1, 0.7, 0.9]}>
               <sphereGeometry args={[0.8, 4, 3]} />
-              <meshStandardMaterial color="#666666" transparent opacity={Math.sin(animationTime * 3.2) > 0 ? 0.3 : 0.1} />
+              <meshStandardMaterial
+                color="#666666"
+                transparent
+                opacity={Math.sin(animationTime * 3.2) > 0 ? 0.3 : 0.1}
+              />
             </mesh>
           </group>
           {/* Burnt Tank Hull */}
           <mesh position={[0, 0.2, 0]}>
             <boxGeometry args={[4.4, 0.6, 2.2]} />
-            <meshStandardMaterial color="#1a1a1a" roughness={1} metalness={0} emissive="#330000" emissiveIntensity={0.2} />
+            <meshStandardMaterial
+              color="#1a1a1a"
+              roughness={1}
+              metalness={0}
+              emissive="#330000"
+              emissiveIntensity={0.2}
+            />
           </mesh>
           {/* Burnt Turret */}
           <mesh position={[0, 0.8, 0]}>
@@ -329,49 +400,95 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
           </mesh>
         </group>
       )}
-      
+
       {enemyDestroyed && (
         <group position={[enemyPosition.x, enemyPosition.y, enemyPosition.z]}>
           {/* Fire Effect */}
           <mesh position={[0, 1.5, 0]}>
             <coneGeometry args={[1, 2.5, 5]} />
-            <meshStandardMaterial color="#ff4400" emissive="#ff2200" emissiveIntensity={5} transparent opacity={0.8} />
+            <meshStandardMaterial
+              color="#ff4400"
+              emissive="#ff2200"
+              emissiveIntensity={5}
+              transparent
+              opacity={0.8}
+            />
           </mesh>
           <mesh position={[0.5, 1.8, 0.3]} rotation={[0, 0, 0.4]}>
             <coneGeometry args={[0.6, 2, 4]} />
-            <meshStandardMaterial color="#ff8800" emissive="#ff4400" emissiveIntensity={6} transparent opacity={0.7} />
+            <meshStandardMaterial
+              color="#ff8800"
+              emissive="#ff4400"
+              emissiveIntensity={6}
+              transparent
+              opacity={0.7}
+            />
           </mesh>
           <mesh position={[-0.4, 1.6, -0.2]} rotation={[0, 0, -0.3]}>
             <coneGeometry args={[0.5, 1.8, 4]} />
-            <meshStandardMaterial color="#ffaa00" emissive="#ff6600" emissiveIntensity={7} transparent opacity={0.6} />
+            <meshStandardMaterial
+              color="#ffaa00"
+              emissive="#ff6600"
+              emissiveIntensity={7}
+              transparent
+              opacity={0.6}
+            />
           </mesh>
           <mesh position={[0.2, 2.2, 0.1]} rotation={[0, 0, 0.2]}>
             <coneGeometry args={[0.3, 1.2, 3]} />
-            <meshStandardMaterial color="#ffdd00" emissive="#ffaa00" emissiveIntensity={8} transparent opacity={0.5} />
+            <meshStandardMaterial
+              color="#ffdd00"
+              emissive="#ffaa00"
+              emissiveIntensity={8}
+              transparent
+              opacity={0.5}
+            />
           </mesh>
           {/* Smoke */}
           <group>
             <mesh position={[0, 4.5, 0]} scale={[2, 1, 1.5]}>
               <sphereGeometry args={[1.5, 6, 4]} />
-              <meshStandardMaterial color="#444444" transparent opacity={Math.sin(animationTime * 2.5) > 0 ? 0.6 : 0.1} />
+              <meshStandardMaterial
+                color="#444444"
+                transparent
+                opacity={Math.sin(animationTime * 2.5) > 0 ? 0.6 : 0.1}
+              />
             </mesh>
             <mesh position={[1, 5, 0.4]} scale={[1.5, 0.8, 1.2]}>
               <sphereGeometry args={[1.2, 5, 4]} />
-              <meshStandardMaterial color="#555555" transparent opacity={Math.sin(animationTime * 2.3) > 0 ? 0.5 : 0.1} />
+              <meshStandardMaterial
+                color="#555555"
+                transparent
+                opacity={Math.sin(animationTime * 2.3) > 0 ? 0.5 : 0.1}
+              />
             </mesh>
             <mesh position={[-0.8, 5.2, -0.3]} scale={[1.3, 0.9, 1.1]}>
               <sphereGeometry args={[1, 4, 3]} />
-              <meshStandardMaterial color="#666666" transparent opacity={Math.sin(animationTime * 2.7) > 0 ? 0.4 : 0.1} />
+              <meshStandardMaterial
+                color="#666666"
+                transparent
+                opacity={Math.sin(animationTime * 2.7) > 0 ? 0.4 : 0.1}
+              />
             </mesh>
             <mesh position={[0.3, 5.8, 0.1]} scale={[1, 0.6, 0.8]}>
               <sphereGeometry args={[0.8, 4, 3]} />
-              <meshStandardMaterial color="#777777" transparent opacity={Math.sin(animationTime * 2.1) > 0 ? 0.3 : 0.1} />
+              <meshStandardMaterial
+                color="#777777"
+                transparent
+                opacity={Math.sin(animationTime * 2.1) > 0 ? 0.3 : 0.1}
+              />
             </mesh>
           </group>
           {/* Burnt Tank Hull */}
           <mesh position={[0, 0.3, 0]}>
             <boxGeometry args={[5.2, 0.8, 2.6]} />
-            <meshStandardMaterial color="#1a1a1a" roughness={1} metalness={0} emissive="#330000" emissiveIntensity={0.2} />
+            <meshStandardMaterial
+              color="#1a1a1a"
+              roughness={1}
+              metalness={0}
+              emissive="#330000"
+              emissiveIntensity={0.2}
+            />
           </mesh>
           {/* Burnt Turret */}
           <mesh position={[0, 1, 0]}>
