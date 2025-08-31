@@ -20,6 +20,8 @@ interface EnemyTankProps {
   isDestroyed?: boolean;
   gameOver?: boolean;
   isActive?: boolean;
+  canShoot?: boolean;
+  allowMovement?: boolean;
 }
 
 const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({ 
@@ -31,7 +33,9 @@ const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({
   playerPosition,
   isDestroyed = false,
   gameOver = false,
-  isActive = true 
+  isActive = true,
+  canShoot = true,
+  allowMovement = true 
 }, ref) => {
   const tankRef = ref as React.RefObject<THREE.Group>;
   const lastShot = useRef(0);
@@ -59,10 +63,10 @@ const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({
     const newRotation = rotation + Math.sign(rotDiff) * Math.min(Math.abs(rotDiff), 0.08);
     onRotationChange(newRotation);
     
-    // 2. MOVEMENT: Move when facing player
+    // 2. MOVEMENT: Move when facing player (only if movement allowed)
     const facingPlayer = Math.abs(rotDiff) < 0.1;
     
-    if (facingPlayer) {
+    if (facingPlayer && allowMovement) {
       const BOUNDARY = 45;
       const nearBoundary = Math.abs(enemyPos.x) > BOUNDARY || Math.abs(enemyPos.z) > BOUNDARY;
       const moveSpeed = 0.08;
@@ -98,7 +102,7 @@ const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({
     
     // Main gun - slower interval
     const mainGunInterval = 2.0;
-    if (currentTime - lastShot.current > mainGunInterval && aimAccuracy && hasLineOfSight && !gameOver) {
+    if (currentTime - lastShot.current > mainGunInterval && aimAccuracy && hasLineOfSight && !gameOver && canShoot) {
       lastShot.current = currentTime;
       
       const gunPos = enemyPos.clone();
@@ -129,7 +133,7 @@ const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({
     
     // Machine guns - continuous rapid fire when facing player and has line of sight
     const mgInterval = 0.1; // Very fast
-    if (currentTime - lastMGShot.current > mgInterval && aimAccuracy && hasLineOfSight && !gameOver) {
+    if (currentTime - lastMGShot.current > mgInterval && aimAccuracy && hasLineOfSight && !gameOver && canShoot) {
       lastMGShot.current = currentTime;
       
       // Machine gun positions

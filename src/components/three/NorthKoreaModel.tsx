@@ -14,6 +14,7 @@ interface NorthKoreaModelProps {
   ) => void;
   onHealthUpdate?: (playerHealth: number, enemyHealth: number) => void;
   onGameOver?: (winner: "player" | "enemy") => void;
+  onCountdown?: (show: boolean, value: number) => void;
 }
 
 const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
@@ -21,6 +22,7 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
   onPositionsUpdate,
   onHealthUpdate,
   onGameOver,
+  onCountdown,
 }) => {
   const playerTankRef = useRef<THREE.Group>(null);
   const enemyTankRef = useRef<THREE.Group>(null);
@@ -41,7 +43,7 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
   );
   const [playerRotation, setPlayerRotation] = useState(0);
   const [enemyPosition, setEnemyPosition] = useState(
-    new THREE.Vector3(15, -0.05, 0)
+    new THREE.Vector3(25, -0.05, 0)
   );
   const [enemyRotation, setEnemyRotation] = useState(0);
   const [isPlayerMoving, setIsPlayerMoving] = useState(false);
@@ -51,6 +53,21 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
   const [playerDestroyed, setPlayerDestroyed] = useState(false);
   const [enemyDestroyed, setEnemyDestroyed] = useState(false);
   const [animationTime, setAnimationTime] = useState(0);
+  const [gameStartTime, setGameStartTime] = useState<number | null>(null);
+  const [showCountdown, setShowCountdown] = useState(false);
+  const [countdownValue, setCountdownValue] = useState(4);
+
+  // Initialize game start time when active
+  React.useEffect(() => {
+    if (isActive && !gameStartTime) {
+      setGameStartTime(Date.now());
+      setShowCountdown(true);
+      setCountdownValue(4);
+    } else if (!isActive) {
+      setGameStartTime(null);
+      setShowCountdown(false);
+    }
+  }, [isActive, gameStartTime]);
 
   // Boundary limits for 100x100 flag ground
   const BOUNDARY_LIMIT = 48; // Slightly less than 50 to keep tanks fully on ground
@@ -107,6 +124,25 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
 
     const time = state.clock.getElapsedTime();
     setAnimationTime(time);
+
+    // Handle countdown
+    if (gameStartTime && showCountdown) {
+      const elapsed = (Date.now() - gameStartTime) / 1000;
+      const remaining = Math.max(0, 4 - elapsed);
+      const newCountdown = Math.ceil(remaining);
+
+      if (newCountdown !== countdownValue) {
+        setCountdownValue(newCountdown);
+      }
+
+      if (remaining <= 0) {
+        setShowCountdown(false);
+      }
+
+      if (onCountdown) {
+        onCountdown(showCountdown, newCountdown);
+      }
+    }
     if (playerTankRef.current) {
       const worldPos = new THREE.Vector3();
       playerTankRef.current.getWorldPosition(worldPos);
@@ -154,20 +190,24 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
       const enemyPos = new THREE.Vector3();
       playerTankRef.current.getWorldPosition(playerPos);
       enemyTankRef.current.getWorldPosition(enemyPos);
-      
+
       const distance = playerPos.distanceTo(enemyPos);
       const minDistance = 4; // Minimum distance between tanks
-      
+
       if (distance < minDistance) {
         // Calculate separation vector
         const separation = playerPos.clone().sub(enemyPos).normalize();
         const overlap = minDistance - distance;
-        
+
         // Push tanks apart
         const pushDistance = overlap * 0.5;
-        const newPlayerPos = playerPos.clone().add(separation.clone().multiplyScalar(pushDistance));
-        const newEnemyPos = enemyPos.clone().sub(separation.clone().multiplyScalar(pushDistance));
-        
+        const newPlayerPos = playerPos
+          .clone()
+          .add(separation.clone().multiplyScalar(pushDistance));
+        const newEnemyPos = enemyPos
+          .clone()
+          .sub(separation.clone().multiplyScalar(pushDistance));
+
         // Apply clamping and update positions
         handlePlayerPositionChange(newPlayerPos);
         handleEnemyPositionChange(newEnemyPos);
@@ -200,15 +240,17 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
           playerTankRef.current.getWorldPosition(playerPos);
           if (projectile.position.distanceTo(playerPos) < 2) {
             const damage = projectile.type === "shell" ? 16 : 0.002;
-            
+
             // Shell momentum pushback
             if (projectile.type === "shell") {
               const pushDirection = projectile.velocity.clone().normalize();
               const pushDistance = 0.8;
-              const newPos = playerPos.clone().add(pushDirection.multiplyScalar(pushDistance));
+              const newPos = playerPos
+                .clone()
+                .add(pushDirection.multiplyScalar(pushDistance));
               handlePlayerPositionChange(newPos);
             }
-            
+
             setPlayerHealth((prev) => {
               const newHealth = Math.max(0, prev - damage);
               if (newHealth <= 0) {
@@ -230,15 +272,17 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
           enemyTankRef.current.getWorldPosition(enemyPos);
           if (projectile.position.distanceTo(enemyPos) < 2) {
             const damage = projectile.type === "shell" ? 8 : 0.0008;
-            
+
             // Shell momentum pushback
             if (projectile.type === "shell") {
               const pushDirection = projectile.velocity.clone().normalize();
               const pushDistance = 0.8;
-              const newPos = enemyPos.clone().add(pushDirection.multiplyScalar(pushDistance));
+              const newPos = enemyPos
+                .clone()
+                .add(pushDirection.multiplyScalar(pushDistance));
               handleEnemyPositionChange(newPos);
             }
-            
+
             setEnemyHealth((prev) => {
               const newHealth = Math.max(0, prev - damage);
               if (newHealth <= 0) {
@@ -295,6 +339,8 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
         isDestroyed={enemyDestroyed}
         gameOver={playerDestroyed || enemyDestroyed}
         isActive={isActive}
+        canShoot={!showCountdown}
+        allowMovement={!showCountdown}
       />
 
       {/* Projectiles */}

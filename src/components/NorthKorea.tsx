@@ -13,18 +13,20 @@ const NorthKorea: React.FC = () => {
   const [showScrollHint, setShowScrollHint] = useState(false);
   const lastScrollTime = useRef(0);
   const [playerPosition, setPlayerPosition] = useState(new THREE.Vector3(0, -0.05, 0));
-  const [enemyPosition, setEnemyPosition] = useState(new THREE.Vector3(15, -0.05, 0));
+  const [enemyPosition, setEnemyPosition] = useState(new THREE.Vector3(25, -0.05, 0));
   const [playerHealth, setPlayerHealth] = useState(100);
   const [enemyHealth, setEnemyHealth] = useState(1000);
   const [gameOver, setGameOver] = useState<'player' | 'enemy' | null>(null);
   const [gameKey, setGameKey] = useState(0);
+  const [showCountdown, setShowCountdown] = useState(false);
+  const [countdownValue, setCountdownValue] = useState(4);
 
   const handleRestart = () => {
     setGameOver(null);
     setPlayerHealth(100);
     setEnemyHealth(1000);
     setPlayerPosition(new THREE.Vector3(0, -0.05, 0));
-    setEnemyPosition(new THREE.Vector3(15, -0.05, 0));
+    setEnemyPosition(new THREE.Vector3(25, -0.05, 0));
     setGameKey(prev => prev + 1); // Force remount
   };
 
@@ -166,6 +168,10 @@ const NorthKorea: React.FC = () => {
             onGameOver={(winner) => {
               setGameOver(winner);
             }}
+            onCountdown={(show, value) => {
+              setShowCountdown(show);
+              setCountdownValue(value);
+            }}
           />
           <OrbitControls
             enabled={isPlaying}
@@ -301,8 +307,47 @@ const NorthKorea: React.FC = () => {
         </div>
       )}
 
+      {/* Large Countdown Display */}
+      {isPlaying && showCountdown && countdownValue > 0 && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 100,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <div
+            style={{
+              textAlign: "center",
+              color: "#ff0000",
+              fontSize: "8rem",
+              fontWeight: "900",
+              textShadow: "0 0 20px #ff0000, 0 0 40px #ff0000",
+              animation: "pulse 1s infinite"
+            }}
+          >
+            {countdownValue}
+          </div>
+          <div
+            style={{
+              position: "absolute",
+              bottom: "30%",
+              fontSize: "2rem",
+              color: "#ffffff",
+              fontWeight: "bold",
+              textShadow: "2px 2px 4px rgba(0,0,0,0.8)"
+            }}
+          >
+            🚨 BATTLE STARTS IN 🚨
+          </div>
+        </div>
+      )}
+
       {/* Control Instructions - Only show when playing */}
-      {isPlaying && !gameOver && (
+      {isPlaying && !gameOver && !showCountdown && (
         <div
           style={{
             position: "absolute",
