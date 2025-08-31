@@ -16,6 +16,17 @@ const NorthKorea: React.FC = () => {
   const [enemyPosition, setEnemyPosition] = useState(new THREE.Vector3(15, -0.05, 0));
   const [playerHealth, setPlayerHealth] = useState(100);
   const [enemyHealth, setEnemyHealth] = useState(1000);
+  const [gameOver, setGameOver] = useState<'player' | 'enemy' | null>(null);
+  const [gameKey, setGameKey] = useState(0);
+
+  const handleRestart = () => {
+    setGameOver(null);
+    setPlayerHealth(100);
+    setEnemyHealth(1000);
+    setPlayerPosition(new THREE.Vector3(0, -0.05, 0));
+    setEnemyPosition(new THREE.Vector3(15, -0.05, 0));
+    setGameKey(prev => prev + 1); // Force remount
+  };
 
   const getHealthColor = (healthPercent: number) => {
     if (healthPercent > 75) return '#00ff00'; // Green
@@ -142,7 +153,8 @@ const NorthKorea: React.FC = () => {
           />
           <pointLight position={[-10, -10, -10]} intensity={0.5} />
           <NorthKoreaModel 
-            isActive={isPlaying} 
+            key={gameKey}
+            isActive={isPlaying && !gameOver} 
             onPositionsUpdate={(playerPos, enemyPos) => {
               setPlayerPosition(playerPos);
               setEnemyPosition(enemyPos);
@@ -150,6 +162,9 @@ const NorthKorea: React.FC = () => {
             onHealthUpdate={(playerHP, enemyHP) => {
               setPlayerHealth(playerHP);
               setEnemyHealth(enemyHP);
+            }}
+            onGameOver={(winner) => {
+              setGameOver(winner);
             }}
           />
           <OrbitControls
@@ -213,8 +228,81 @@ const NorthKorea: React.FC = () => {
         </div>
       )}
 
+      {/* Game Over Screen - Show when game over */}
+      {isPlaying && gameOver && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 50,
+            background: "rgba(0,0,0,0.8)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backdropFilter: "blur(5px)"
+          }}
+        >
+          <div
+            style={{
+              textAlign: "center",
+              color: "white",
+              padding: "2rem",
+              backgroundColor: "rgba(0,0,0,0.7)",
+              borderRadius: "10px",
+              border: "2px solid rgba(255,255,255,0.3)"
+            }}
+          >
+            <h2 style={{ fontSize: "3rem", marginBottom: "1rem", color: gameOver === 'player' ? '#00ff00' : '#ff0000' }}>
+              {gameOver === 'player' ? '🎉 VICTORY!' : '💀 DEFEAT!'}
+            </h2>
+            <p style={{ fontSize: "1.5rem", marginBottom: "2rem", opacity: 0.9 }}>
+              {gameOver === 'player' ? 'You destroyed the enemy tank!' : 'Your tank was destroyed!'}
+            </p>
+            <div style={{ display: "flex", gap: "1rem", justifyContent: "center" }}>
+              <button
+                onClick={handleRestart}
+                style={{
+                  padding: "1rem 2rem",
+                  fontSize: "1.2rem",
+                  backgroundColor: "#00aa00",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "5px",
+                  cursor: "pointer",
+                  fontWeight: "bold"
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#00cc00"}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#00aa00"}
+              >
+                🔄 Play Again
+              </button>
+              <button
+                onClick={() => {
+                  setIsPlaying(false);
+                  // Keep gameOver state so it shows again when re-entering
+                }}
+                style={{
+                  padding: "1rem 2rem",
+                  fontSize: "1.2rem",
+                  backgroundColor: "#aa0000",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "5px",
+                  cursor: "pointer",
+                  fontWeight: "bold"
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#cc0000"}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#aa0000"}
+              >
+                🚪 Exit Game
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Control Instructions - Only show when playing */}
-      {isPlaying && (
+      {isPlaying && !gameOver && (
         <div
           style={{
             position: "absolute",

@@ -19,6 +19,7 @@ interface EnemyTankProps {
   playerPosition: THREE.Vector3;
   isDestroyed?: boolean;
   gameOver?: boolean;
+  isActive?: boolean;
 }
 
 const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({ 
@@ -29,7 +30,8 @@ const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({
   onProjectile, 
   playerPosition,
   isDestroyed = false,
-  gameOver = false 
+  gameOver = false,
+  isActive = true 
 }, ref) => {
   const tankRef = ref as React.RefObject<THREE.Group>;
   const lastShot = useRef(0);
@@ -39,7 +41,7 @@ const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({
   const [isMGFiring, setIsMGFiring] = useState(false);
 
   useFrame((state) => {
-    if (!tankRef.current || isDestroyed) return;
+    if (!tankRef.current || isDestroyed || !isActive) return;
 
     const enemyPos = position.clone();
     const distanceToPlayer = enemyPos.distanceTo(playerPosition);

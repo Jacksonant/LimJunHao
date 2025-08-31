@@ -1,5 +1,5 @@
 import { useFrame, useLoader } from "@react-three/fiber";
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import * as THREE from "three";
 import bgSource from "../../assets/img/north_korea_flag.jpeg";
 import { OrbitControls } from "three/examples/jsm/Addons.js";
@@ -10,12 +10,14 @@ interface NorthKoreaModelProps {
   isActive?: boolean;
   onPositionsUpdate?: (playerPos: THREE.Vector3, enemyPos: THREE.Vector3) => void;
   onHealthUpdate?: (playerHealth: number, enemyHealth: number) => void;
+  onGameOver?: (winner: 'player' | 'enemy') => void;
 }
 
 const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
   isActive = false,
   onPositionsUpdate,
   onHealthUpdate,
+  onGameOver,
 }) => {
   const playerTankRef = useRef<THREE.Group>(null);
   const enemyTankRef = useRef<THREE.Group>(null);
@@ -97,9 +99,12 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
   };
 
   useFrame((state) => {
+    // Pause all game logic when not active
+    if (!isActive) return;
+    
     const time = state.clock.getElapsedTime();
     setAnimationTime(time);
-    if (playerTankRef.current && isActive) {
+    if (playerTankRef.current) {
       const worldPos = new THREE.Vector3();
       playerTankRef.current.getWorldPosition(worldPos);
 
@@ -168,7 +173,10 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
             const damage = projectile.type === "shell" ? 16 : 0.002;
             setPlayerHealth(prev => {
               const newHealth = Math.max(0, prev - damage);
-              if (newHealth <= 0) setPlayerDestroyed(true);
+              if (newHealth <= 0) {
+                setPlayerDestroyed(true);
+                if (onGameOver) onGameOver('enemy');
+              }
               return newHealth;
             });
             return false;
@@ -182,7 +190,10 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
             const damage = projectile.type === "shell" ? 8 : 0.0008;
             setEnemyHealth(prev => {
               const newHealth = Math.max(0, prev - damage);
-              if (newHealth <= 0) setEnemyDestroyed(true);
+              if (newHealth <= 0) {
+                setEnemyDestroyed(true);
+                if (onGameOver) onGameOver('player');
+              }
               return newHealth;
             });
             return false;
@@ -232,6 +243,7 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
         playerPosition={playerPosition}
         isDestroyed={enemyDestroyed}
         gameOver={playerDestroyed || enemyDestroyed}
+        isActive={isActive}
       />
 
       {/* Projectiles */}
