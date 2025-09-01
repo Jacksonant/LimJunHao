@@ -12,14 +12,47 @@ const NorthKorea: React.FC = () => {
   const [scrollAttempts, setScrollAttempts] = useState(0);
   const [showScrollHint, setShowScrollHint] = useState(false);
   const lastScrollTime = useRef(0);
-  const [playerPosition, setPlayerPosition] = useState(new THREE.Vector3(0, -0.05, 0));
-  const [enemyPosition, setEnemyPosition] = useState(new THREE.Vector3(25, -0.05, 0));
+  const [playerPosition, setPlayerPosition] = useState(
+    new THREE.Vector3(0, -0.05, 0)
+  );
+  const [enemyPosition, setEnemyPosition] = useState(
+    new THREE.Vector3(25, -0.05, 0)
+  );
   const [playerHealth, setPlayerHealth] = useState(100);
   const [enemyHealth, setEnemyHealth] = useState(1000);
-  const [gameOver, setGameOver] = useState<'player' | 'enemy' | null>(null);
+  const [gameOver, setGameOver] = useState<"player" | "enemy" | null>(null);
   const [gameKey, setGameKey] = useState(0);
   const [showCountdown, setShowCountdown] = useState(false);
   const [countdownValue, setCountdownValue] = useState(4);
+  const lastCountdownValue = useRef(5);
+
+  const playCountdownBeep = (isStart = false) => {
+    const audioContext = new (window.AudioContext ||
+      (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    if (isStart) {
+      // Start sound - higher pitch, longer duration
+      oscillator.frequency.setValueAtTime(1200, audioContext.currentTime);
+      oscillator.type = "sine";
+      gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.5);
+    } else {
+      // Countdown beep - standard beep
+      oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+      oscillator.type = "square";
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.2);
+    }
+  };
 
   const handleRestart = () => {
     setGameOver(null);
@@ -27,15 +60,16 @@ const NorthKorea: React.FC = () => {
     setEnemyHealth(1000);
     setPlayerPosition(new THREE.Vector3(0, -0.05, 0));
     setEnemyPosition(new THREE.Vector3(25, -0.05, 0));
-    setGameKey(prev => prev + 1); // Force remount
+    setGameKey((prev) => prev + 1); // Force remount
+    lastCountdownValue.current = 5; // Reset countdown
   };
 
   const getHealthColor = (healthPercent: number) => {
-    if (healthPercent > 75) return '#00ff00'; // Green
-    if (healthPercent > 50) return '#ffff00'; // Yellow
-    if (healthPercent > 25) return '#ff8800'; // Orange
-    if (healthPercent > 10) return '#ff0000'; // Red
-    return '#800000'; // Dark red
+    if (healthPercent > 75) return "#00ff00"; // Green
+    if (healthPercent > 50) return "#ffff00"; // Yellow
+    if (healthPercent > 25) return "#ff8800"; // Orange
+    if (healthPercent > 10) return "#ff0000"; // Red
+    return "#800000"; // Dark red
   };
 
   useEffect(() => {
@@ -43,9 +77,9 @@ const NorthKorea: React.FC = () => {
       if (!isPlaying) {
         const now = Date.now();
         if (now - lastScrollTime.current > 100) {
-          setScrollAttempts(prev => prev + 1);
+          setScrollAttempts((prev) => prev + 1);
           lastScrollTime.current = now;
-          
+
           if (scrollAttempts > 3) {
             setShowScrollHint(true);
             setTimeout(() => setShowScrollHint(false), 3000);
@@ -55,22 +89,21 @@ const NorthKorea: React.FC = () => {
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isPlaying) {
+      if (e.key === "Escape" && isPlaying) {
         setIsPlaying(false);
       }
     };
 
-    window.addEventListener('wheel', handleWheel, { passive: true });
-    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener("wheel", handleWheel, { passive: true });
+    window.addEventListener("keydown", handleKeyDown);
     return () => {
-      window.removeEventListener('wheel', handleWheel);
-      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener("wheel", handleWheel);
+      window.removeEventListener("keydown", handleKeyDown);
     };
   }, [scrollAttempts, isPlaying]);
 
   return (
     <section id="hero" style={{ height: "100vh", position: "relative" }}>
-      
       {/* Play Button Overlay */}
       {!isPlaying && (
         <div
@@ -83,14 +116,14 @@ const NorthKorea: React.FC = () => {
             alignItems: "center",
             justifyContent: "center",
             backdropFilter: "blur(5px)",
-            cursor: "pointer"
+            cursor: "pointer",
           }}
           onClick={() => setIsPlaying(true)}
         >
           <div
             style={{
               textAlign: "center",
-              color: "white"
+              color: "white",
             }}
           >
             <div
@@ -104,7 +137,7 @@ const NorthKorea: React.FC = () => {
                 justifyContent: "center",
                 margin: "0 auto 1rem",
                 border: "3px solid rgba(255,255,255,0.5)",
-                transition: "all 0.3s ease"
+                transition: "all 0.3s ease",
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = "rgba(255,255,255,0.3)";
@@ -122,11 +155,17 @@ const NorthKorea: React.FC = () => {
                   borderLeft: "25px solid white",
                   borderTop: "15px solid transparent",
                   borderBottom: "15px solid transparent",
-                  marginLeft: "8px"
+                  marginLeft: "8px",
                 }}
               />
             </div>
-            <h2 style={{ fontSize: "2rem", fontWeight: "700", marginBottom: "0.5rem" }}>
+            <h2
+              style={{
+                fontSize: "2rem",
+                fontWeight: "700",
+                marginBottom: "0.5rem",
+              }}
+            >
               🎮 Tank Battle
             </h2>
             <p style={{ fontSize: "1.1rem", opacity: 0.9 }}>
@@ -135,7 +174,10 @@ const NorthKorea: React.FC = () => {
           </div>
         </div>
       )}
-      <div className="absolute inset-0 z-10" style={{ height: "100vh", pointerEvents: isPlaying ? "auto" : "none" }}>
+      <div
+        className="absolute inset-0 z-10"
+        style={{ height: "100vh", pointerEvents: isPlaying ? "auto" : "none" }}
+      >
         <Canvas
           shadows
           camera={{ position: [0, 0, 5], fov: 45 }}
@@ -154,9 +196,9 @@ const NorthKorea: React.FC = () => {
             castShadow
           />
           <pointLight position={[-10, -10, -10]} intensity={0.5} />
-          <NorthKoreaModel 
+          <NorthKoreaModel
             key={gameKey}
-            isActive={isPlaying && !gameOver} 
+            isActive={isPlaying && !gameOver}
             onPositionsUpdate={(playerPos, enemyPos) => {
               setPlayerPosition(playerPos);
               setEnemyPosition(enemyPos);
@@ -171,6 +213,16 @@ const NorthKorea: React.FC = () => {
             onCountdown={(show, value) => {
               setShowCountdown(show);
               setCountdownValue(value);
+
+              // Play countdown beep for 4,3,2,1 and start sound for 0
+              if (show && value !== lastCountdownValue.current) {
+                if (value > 0) {
+                  playCountdownBeep(false); // Countdown beep for 4,3,2,1
+                } else {
+                  playCountdownBeep(true); // Start sound for 0
+                }
+                lastCountdownValue.current = value;
+              }
             }}
           />
           <OrbitControls
@@ -205,12 +257,36 @@ const NorthKorea: React.FC = () => {
             left: "50%",
             transform: "translateX(-50%)",
             zIndex: 20,
-            textAlign: "center"
+            textAlign: "center",
           }}
         >
-          <div style={{ color: getHealthColor(playerHealth), fontSize: "14px", marginBottom: "4px" }}>Player</div>
-          <div style={{ width: "300px", height: "12px", backgroundColor: "rgba(0,0,0,0.7)", borderRadius: "6px", overflow: "hidden", border: "2px solid rgba(0,255,0,0.5)" }}>
-            <div style={{ width: `${playerHealth}%`, height: "100%", backgroundColor: getHealthColor(playerHealth), transition: "all 0.3s ease" }} />
+          <div
+            style={{
+              color: getHealthColor(playerHealth),
+              fontSize: "14px",
+              marginBottom: "4px",
+            }}
+          >
+            Player
+          </div>
+          <div
+            style={{
+              width: "300px",
+              height: "12px",
+              backgroundColor: "rgba(0,0,0,0.7)",
+              borderRadius: "6px",
+              overflow: "hidden",
+              border: "2px solid rgba(0,255,0,0.5)",
+            }}
+          >
+            <div
+              style={{
+                width: `${playerHealth}%`,
+                height: "100%",
+                backgroundColor: getHealthColor(playerHealth),
+                transition: "all 0.3s ease",
+              }}
+            />
           </div>
         </div>
       )}
@@ -224,12 +300,36 @@ const NorthKorea: React.FC = () => {
             left: "50%",
             transform: "translateX(-50%)",
             zIndex: 20,
-            textAlign: "center"
+            textAlign: "center",
           }}
         >
-          <div style={{ color: getHealthColor(enemyHealth / 10), fontSize: "14px", marginBottom: "4px" }}>Enemy</div>
-          <div style={{ width: "400px", height: "12px", backgroundColor: "rgba(0,0,0,0.7)", borderRadius: "6px", overflow: "hidden", border: "2px solid rgba(0,255,0,0.5)" }}>
-            <div style={{ width: `${enemyHealth / 10}%`, height: "100%", backgroundColor: getHealthColor(enemyHealth / 10), transition: "all 0.3s ease" }} />
+          <div
+            style={{
+              color: getHealthColor(enemyHealth / 10),
+              fontSize: "14px",
+              marginBottom: "4px",
+            }}
+          >
+            Enemy
+          </div>
+          <div
+            style={{
+              width: "400px",
+              height: "12px",
+              backgroundColor: "rgba(0,0,0,0.7)",
+              borderRadius: "6px",
+              overflow: "hidden",
+              border: "2px solid rgba(0,255,0,0.5)",
+            }}
+          >
+            <div
+              style={{
+                width: `${enemyHealth / 10}%`,
+                height: "100%",
+                backgroundColor: getHealthColor(enemyHealth / 10),
+                transition: "all 0.3s ease",
+              }}
+            />
           </div>
         </div>
       )}
@@ -245,7 +345,7 @@ const NorthKorea: React.FC = () => {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            backdropFilter: "blur(5px)"
+            backdropFilter: "blur(5px)",
           }}
         >
           <div
@@ -255,16 +355,28 @@ const NorthKorea: React.FC = () => {
               padding: "2rem",
               backgroundColor: "rgba(0,0,0,0.7)",
               borderRadius: "10px",
-              border: "2px solid rgba(255,255,255,0.3)"
+              border: "2px solid rgba(255,255,255,0.3)",
             }}
           >
-            <h2 style={{ fontSize: "3rem", marginBottom: "1rem", color: gameOver === 'player' ? '#00ff00' : '#ff0000' }}>
-              {gameOver === 'player' ? '🎉 VICTORY!' : '💀 DEFEAT!'}
+            <h2
+              style={{
+                fontSize: "3rem",
+                marginBottom: "1rem",
+                color: gameOver === "player" ? "#00ff00" : "#ff0000",
+              }}
+            >
+              {gameOver === "player" ? "🎉 VICTORY!" : "💀 DEFEAT!"}
             </h2>
-            <p style={{ fontSize: "1.5rem", marginBottom: "2rem", opacity: 0.9 }}>
-              {gameOver === 'player' ? 'You destroyed the enemy tank!' : 'Your tank was destroyed!'}
+            <p
+              style={{ fontSize: "1.5rem", marginBottom: "2rem", opacity: 0.9 }}
+            >
+              {gameOver === "player"
+                ? "You destroyed the enemy tank!"
+                : "Your tank was destroyed!"}
             </p>
-            <div style={{ display: "flex", gap: "1rem", justifyContent: "center" }}>
+            <div
+              style={{ display: "flex", gap: "1rem", justifyContent: "center" }}
+            >
               <button
                 onClick={handleRestart}
                 style={{
@@ -275,17 +387,21 @@ const NorthKorea: React.FC = () => {
                   border: "none",
                   borderRadius: "5px",
                   cursor: "pointer",
-                  fontWeight: "bold"
+                  fontWeight: "bold",
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#00cc00"}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#00aa00"}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.backgroundColor = "#00cc00")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.backgroundColor = "#00aa00")
+                }
               >
                 🔄 Play Again
               </button>
               <button
                 onClick={() => {
                   setIsPlaying(false);
-                  // Keep gameOver state so it shows again when re-entering
+                  setGameKey((prev) => prev + 1); // Force remount to stop sounds
                 }}
                 style={{
                   padding: "1rem 2rem",
@@ -295,10 +411,14 @@ const NorthKorea: React.FC = () => {
                   border: "none",
                   borderRadius: "5px",
                   cursor: "pointer",
-                  fontWeight: "bold"
+                  fontWeight: "bold",
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#cc0000"}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#aa0000"}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.backgroundColor = "#cc0000")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.backgroundColor = "#aa0000")
+                }
               >
                 🚪 Exit Game
               </button>
@@ -326,7 +446,7 @@ const NorthKorea: React.FC = () => {
               fontSize: "8rem",
               fontWeight: "900",
               textShadow: "0 0 20px #ff0000, 0 0 40px #ff0000",
-              animation: "pulse 1s infinite"
+              animation: "pulse 1s infinite",
             }}
           >
             {countdownValue}
@@ -338,7 +458,7 @@ const NorthKorea: React.FC = () => {
               fontSize: "2rem",
               color: "#ffffff",
               fontWeight: "bold",
-              textShadow: "2px 2px 4px rgba(0,0,0,0.8)"
+              textShadow: "2px 2px 4px rgba(0,0,0,0.8)",
             }}
           >
             🚨 BATTLE STARTS IN 🚨
@@ -367,7 +487,13 @@ const NorthKorea: React.FC = () => {
           <div>B: Rear View</div>
           <div>Mouse: Look Around</div>
           <div>Scroll: Zoom In/Out</div>
-          <div style={{ marginTop: "4px", borderTop: "1px solid rgba(255,255,255,0.3)", paddingTop: "4px" }}>
+          <div
+            style={{
+              marginTop: "4px",
+              borderTop: "1px solid rgba(255,255,255,0.3)",
+              paddingTop: "4px",
+            }}
+          >
             <strong>ESC: Exit Game</strong>
           </div>
         </div>
@@ -385,11 +511,13 @@ const NorthKorea: React.FC = () => {
             color: "white",
             textAlign: "center",
             animation: "bounce 2s infinite",
-            background: showScrollHint ? 'rgba(255,255,255,0.1)' : 'transparent',
-            padding: showScrollHint ? '1rem' : '0',
-            borderRadius: '10px',
-            backdropFilter: showScrollHint ? 'blur(10px)' : 'none',
-            transition: 'all 0.3s ease'
+            background: showScrollHint
+              ? "rgba(255,255,255,0.1)"
+              : "transparent",
+            padding: showScrollHint ? "1rem" : "0",
+            borderRadius: "10px",
+            backdropFilter: showScrollHint ? "blur(10px)" : "none",
+            transition: "all 0.3s ease",
           }}
         >
           <div style={{ fontSize: "14px", marginBottom: "8px" }}>
@@ -415,7 +543,7 @@ const NorthKorea: React.FC = () => {
             borderRadius: "5px",
             cursor: "pointer",
             fontSize: "14px",
-            fontWeight: "600"
+            fontWeight: "600",
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = "rgba(255,0,0,1)";

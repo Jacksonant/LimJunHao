@@ -59,7 +59,7 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
 
   // Initialize game start time when active
   React.useEffect(() => {
-    if (isActive && !gameStartTime) {
+    if (isActive && !gameStartTime && !playerDestroyed && !enemyDestroyed) {
       setGameStartTime(Date.now());
       setShowCountdown(true);
       setCountdownValue(4);
@@ -67,7 +67,7 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
       setGameStartTime(null);
       setShowCountdown(false);
     }
-  }, [isActive, gameStartTime]);
+  }, [isActive, gameStartTime, playerDestroyed, enemyDestroyed]);
 
   // Boundary limits for 100x100 flag ground
   const BOUNDARY_LIMIT = 48; // Slightly less than 50 to keep tanks fully on ground

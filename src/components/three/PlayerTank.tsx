@@ -63,6 +63,25 @@ const PlayerTank = React.forwardRef<THREE.Group, PlayerTankProps>(({
     engineAudioRef.current = new Audio(tankMovingSound);
   }, []);
 
+  // Stop all sounds when game over or destroyed
+  useEffect(() => {
+    if (gameOver || isDestroyed) {
+      if (machineGunAudioRef.current) {
+        machineGunAudioRef.current.pause();
+        machineGunAudioRef.current.currentTime = 0;
+      }
+      if (engineAudioRef.current) {
+        engineAudioRef.current.pause();
+        engineAudioRef.current.currentTime = 0;
+      }
+      if (machineGunInterval.current) {
+        clearInterval(machineGunInterval.current);
+        machineGunInterval.current = null;
+      }
+      setIsMachineGunFiring(false);
+    }
+  }, [gameOver, isDestroyed]);
+
   useEffect(() => {
     if (!isActive) return;
 
@@ -210,13 +229,13 @@ const PlayerTank = React.forwardRef<THREE.Group, PlayerTankProps>(({
       onMovingChange(moving);
       onRearViewChange(keys.b);
 
-      // Engine sound
-      if (moving && engineAudioRef.current) {
+      // Engine sound (only if game is not over)
+      if (moving && engineAudioRef.current && !gameOver && !isDestroyed) {
         if (engineAudioRef.current.paused) {
           engineAudioRef.current.loop = true;
           engineAudioRef.current.play();
         }
-      } else if (!moving && engineAudioRef.current) {
+      } else if (engineAudioRef.current) {
         engineAudioRef.current.pause();
         engineAudioRef.current.currentTime = 0;
       }

@@ -1,6 +1,9 @@
 import { useFrame } from "@react-three/fiber";
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import * as THREE from "three";
+import machineGunSound from "../../assets/audio/machine-gun-firing.mp3";
+import shellFiringSound from "../../assets/audio/shell-firing.mp3";
+import tankMovingSound from "../../assets/audio/tank-moving.mp3";
 
 interface EnemyTankProps {
   position: THREE.Vector3;
@@ -43,6 +46,33 @@ const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({
   const projectileId = useRef(1000);
   const [isFiring, setIsFiring] = useState(false);
   const [isMGFiring, setIsMGFiring] = useState(false);
+  const [isMoving, setIsMoving] = useState(false);
+  
+  const cannonAudioRef = useRef<HTMLAudioElement | null>(null);
+  const machineGunAudioRef = useRef<HTMLAudioElement | null>(null);
+  const engineAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    cannonAudioRef.current = new Audio(shellFiringSound);
+    machineGunAudioRef.current = new Audio(machineGunSound);
+    engineAudioRef.current = new Audio(tankMovingSound);
+  }, []);
+
+  // Stop all sounds when game over, destroyed, or not active
+  useEffect(() => {
+    if (gameOver || isDestroyed || !isActive) {
+      if (machineGunAudioRef.current) {
+        machineGunAudioRef.current.pause();
+        machineGunAudioRef.current.currentTime = 0;
+      }
+      if (engineAudioRef.current) {
+        engineAudioRef.current.pause();
+        engineAudioRef.current.currentTime = 0;
+      }
+      setIsMoving(false);
+      setIsMGFiring(false);
+    }
+  }, [gameOver, isDestroyed, isActive]);
 
   useFrame((state) => {
     if (!tankRef.current || isDestroyed || !isActive) return;
@@ -90,6 +120,23 @@ const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({
         newPos.x += Math.cos(newRotation) * moveSpeed * moveDirection;
         newPos.z -= Math.sin(newRotation) * moveSpeed * moveDirection;
         onPositionChange(newPos);
+        
+        // Movement sound
+        if (!isMoving) {
+          setIsMoving(true);
+          if (engineAudioRef.current && !gameOver) {
+            engineAudioRef.current.loop = true;
+            engineAudioRef.current.play();
+          }
+        }
+      } else {
+        if (isMoving) {
+          setIsMoving(false);
+          if (engineAudioRef.current) {
+            engineAudioRef.current.pause();
+            engineAudioRef.current.currentTime = 0;
+          }
+        }
       }
     }
     
@@ -126,8 +173,12 @@ const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({
         owner: 'enemy'
       });
       
-      // Main gun firing effect
+      // Main gun firing effect and sound
       setIsFiring(true);
+      if (cannonAudioRef.current) {
+        cannonAudioRef.current.currentTime = 0;
+        cannonAudioRef.current.play();
+      }
       setTimeout(() => setIsFiring(false), 300);
     }
     
@@ -193,9 +244,23 @@ const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({
         owner: 'enemy'
       });
       
-      // Machine gun firing effect
-      setIsMGFiring(true);
-      setTimeout(() => setIsMGFiring(false), 100);
+      // Machine gun firing effect and sound
+      if (!isMGFiring) {
+        setIsMGFiring(true);
+        if (machineGunAudioRef.current && !gameOver) {
+          machineGunAudioRef.current.loop = true;
+          machineGunAudioRef.current.play();
+        }
+      }
+    } else {
+      // Stop machine gun sound when not firing
+      if (isMGFiring) {
+        setIsMGFiring(false);
+        if (machineGunAudioRef.current) {
+          machineGunAudioRef.current.pause();
+          machineGunAudioRef.current.currentTime = 0;
+        }
+      }
     }
 
     // Update tank transform
