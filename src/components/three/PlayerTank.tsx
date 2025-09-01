@@ -26,6 +26,8 @@ interface PlayerTankProps {
     rotation: number;
     owner: 'player' | 'enemy';
   }) => void;
+  // Sound callback for skid effect
+  onSkid?: () => void;
 }
 
 const PlayerTank = React.forwardRef<THREE.Group, PlayerTankProps>(({ 
@@ -38,7 +40,8 @@ const PlayerTank = React.forwardRef<THREE.Group, PlayerTankProps>(({
   onRearViewChange,
   isDestroyed = false,
   gameOver = false, 
-  onProjectile 
+  onProjectile,
+  onSkid 
 }, ref) => {
   const tankRef = ref as React.RefObject<THREE.Group>;
   const materialRef = useRef<THREE.MeshStandardMaterial>(null);
@@ -257,7 +260,10 @@ const PlayerTank = React.forwardRef<THREE.Group, PlayerTankProps>(({
       
       if (!isDestroyed) {
         if (keys.w || keys.s) onPositionChange(newPosition);
-        if (keys.a || keys.d) onRotationChange(newRotation);
+        if (keys.a || keys.d) {
+          onRotationChange(newRotation);
+          if (onSkid) onSkid();
+        }
       }
 
       // Update tank transform

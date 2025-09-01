@@ -5,6 +5,14 @@ import { useLoading } from "../contexts/LoadingContext";
 import NorthKoreaModel from "./three/NorthKoreaModel";
 import Minimap from "./three/Minimap";
 import * as THREE from "three";
+import screamSound from "../assets/audio/scream.mp3";
+import crashSound from "../assets/audio/crash.wav";
+import explosionSound from "../assets/audio/explosion.wav";
+import skidSound from "../assets/audio/skid.wav";
+
+interface WindowWithWebkitAudioContext extends Window {
+  webkitAudioContext?: typeof AudioContext;
+}
 
 const NorthKorea: React.FC = () => {
   const { completeLoading } = useLoading();
@@ -26,9 +34,33 @@ const NorthKorea: React.FC = () => {
   const [countdownValue, setCountdownValue] = useState(4);
   const lastCountdownValue = useRef(5);
 
+  const playScreamSound = () => {
+    const audio = new Audio(screamSound);
+    audio.volume = 0.7;
+    audio.play();
+  };
+
+  const playCrashSound = () => {
+    const audio = new Audio(crashSound);
+    audio.volume = 0.03;
+    audio.play();
+  };
+
+  const playExplosionSound = () => {
+    const audio = new Audio(explosionSound);
+    audio.volume = 0.8;
+    audio.play();
+  };
+
+  const playSkidSound = () => {
+    const audio = new Audio(skidSound);
+    audio.volume = 0.04;
+    audio.play();
+  };
+
   const playCountdownBeep = (isStart = false) => {
     const audioContext = new (window.AudioContext ||
-      (window as any).webkitAudioContext)();
+      (window as WindowWithWebkitAudioContext).webkitAudioContext)();
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
 
@@ -40,7 +72,10 @@ const NorthKorea: React.FC = () => {
       oscillator.frequency.setValueAtTime(1200, audioContext.currentTime);
       oscillator.type = "sine";
       gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+      gainNode.gain.exponentialRampToValueAtTime(
+        0.01,
+        audioContext.currentTime + 0.5
+      );
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.5);
     } else {
@@ -48,7 +83,10 @@ const NorthKorea: React.FC = () => {
       oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
       oscillator.type = "square";
       gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+      gainNode.gain.exponentialRampToValueAtTime(
+        0.01,
+        audioContext.currentTime + 0.2
+      );
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.2);
     }
@@ -209,6 +247,7 @@ const NorthKorea: React.FC = () => {
             }}
             onGameOver={(winner) => {
               setGameOver(winner);
+              playScreamSound();
             }}
             onCountdown={(show, value) => {
               setShowCountdown(show);
@@ -224,6 +263,9 @@ const NorthKorea: React.FC = () => {
                 lastCountdownValue.current = value;
               }
             }}
+            onCrash={playCrashSound}
+            onExplosion={playExplosionSound}
+            onSkid={playSkidSound}
           />
           <OrbitControls
             enabled={isPlaying}
@@ -237,16 +279,28 @@ const NorthKorea: React.FC = () => {
             dampingFactor={0.05}
           />
         </Canvas>
-      </div>
 
-      {/* Minimap - Only show when playing */}
-      {isPlaying && (
-        <Minimap
-          playerPosition={playerPosition}
-          enemyPosition={enemyPosition}
-          boundaryLimit={48}
-        />
-      )}
+        {/* Minimap - Fixed within game area */}
+        {isPlaying && (
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              pointerEvents: "none",
+              zIndex: 15,
+            }}
+          >
+            <Minimap
+              playerPosition={playerPosition}
+              enemyPosition={enemyPosition}
+              boundaryLimit={48}
+            />
+          </div>
+        )}
+      </div>
 
       {/* Player Health Bar - Bottom */}
       {isPlaying && (

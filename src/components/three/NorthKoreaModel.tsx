@@ -15,6 +15,9 @@ interface NorthKoreaModelProps {
   onHealthUpdate?: (playerHealth: number, enemyHealth: number) => void;
   onGameOver?: (winner: "player" | "enemy") => void;
   onCountdown?: (show: boolean, value: number) => void;
+  onCrash?: () => void;
+  onExplosion?: () => void;
+  onSkid?: () => void;
 }
 
 const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
@@ -23,6 +26,9 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
   onHealthUpdate,
   onGameOver,
   onCountdown,
+  onCrash,
+  onExplosion,
+  onSkid,
 }) => {
   const playerTankRef = useRef<THREE.Group>(null);
   const enemyTankRef = useRef<THREE.Group>(null);
@@ -72,20 +78,30 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
   // Boundary limits for 100x100 flag ground
   const BOUNDARY_LIMIT = 48; // Slightly less than 50 to keep tanks fully on ground
 
-  const clampPosition = (position: THREE.Vector3) => {
+  const clampPosition = (position: THREE.Vector3, checkBoundary = false) => {
+    const originalX = position.x;
+    const originalZ = position.z;
+    const clampedX = Math.max(-BOUNDARY_LIMIT, Math.min(BOUNDARY_LIMIT, position.x));
+    const clampedZ = Math.max(-BOUNDARY_LIMIT, Math.min(BOUNDARY_LIMIT, position.z));
+    
+    // Check if position was clamped (hit boundary) and play crash sound
+    if (checkBoundary && (originalX !== clampedX || originalZ !== clampedZ)) {
+      if (onCrash) onCrash();
+    }
+    
     return new THREE.Vector3(
-      Math.max(-BOUNDARY_LIMIT, Math.min(BOUNDARY_LIMIT, position.x)),
+      clampedX,
       Math.max(-0.05, position.y), // Ensure tanks stay above ground plane
-      Math.max(-BOUNDARY_LIMIT, Math.min(BOUNDARY_LIMIT, position.z))
+      clampedZ
     );
   };
 
   const handlePlayerPositionChange = (newPosition: THREE.Vector3) => {
-    setPlayerPosition(clampPosition(newPosition));
+    setPlayerPosition(clampPosition(newPosition, true));
   };
 
   const handleEnemyPositionChange = (newPosition: THREE.Vector3) => {
-    setEnemyPosition(clampPosition(newPosition));
+    setEnemyPosition(clampPosition(newPosition, true));
   };
 
   const handlePlayerProjectile = (projectile: {
@@ -195,6 +211,9 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
       const minDistance = 4; // Minimum distance between tanks
 
       if (distance < minDistance) {
+        // Play crash sound
+        if (onCrash) onCrash();
+
         // Calculate separation vector
         const separation = playerPos.clone().sub(enemyPos).normalize();
         const overlap = minDistance - distance;
@@ -326,6 +345,7 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
         isDestroyed={playerDestroyed}
         gameOver={playerDestroyed || enemyDestroyed}
         onProjectile={handlePlayerProjectile}
+        onSkid={onSkid}
       />
 
       <EnemyTank
@@ -341,6 +361,8 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
         isActive={isActive}
         canShoot={!showCountdown}
         allowMovement={!showCountdown}
+        onExplosion={onExplosion}
+        onSkid={onSkid}
       />
 
       {/* Projectiles */}

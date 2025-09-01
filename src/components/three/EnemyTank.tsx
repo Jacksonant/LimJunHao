@@ -25,6 +25,8 @@ interface EnemyTankProps {
   isActive?: boolean;
   canShoot?: boolean;
   allowMovement?: boolean;
+  onExplosion?: () => void;
+  onSkid?: () => void;
 }
 
 const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({ 
@@ -38,7 +40,9 @@ const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({
   gameOver = false,
   isActive = true,
   canShoot = true,
-  allowMovement = true 
+  allowMovement = true,
+  onExplosion,
+  onSkid 
 }, ref) => {
   const tankRef = ref as React.RefObject<THREE.Group>;
   const lastShot = useRef(0);
@@ -91,6 +95,7 @@ const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({
     
     // Fast rotation to face player with actual front
     const newRotation = rotation + Math.sign(rotDiff) * Math.min(Math.abs(rotDiff), 0.08);
+    if (Math.abs(rotDiff) > 0.01 && onSkid) onSkid();
     onRotationChange(newRotation);
     
     // 2. MOVEMENT: Move when facing player (only if movement allowed)
@@ -175,10 +180,7 @@ const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(({
       
       // Main gun firing effect and sound
       setIsFiring(true);
-      if (cannonAudioRef.current) {
-        cannonAudioRef.current.currentTime = 0;
-        cannonAudioRef.current.play();
-      }
+      if (onExplosion) onExplosion();
       setTimeout(() => setIsFiring(false), 300);
     }
     
