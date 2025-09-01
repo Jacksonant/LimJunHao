@@ -42,19 +42,18 @@ const NorthKorea: React.FC = () => {
 
   const playCrashSound = () => {
     const audio = new Audio(crashSound);
-    audio.volume = 0.03;
+    audio.volume = 0.5;
     audio.play();
   };
 
   const playExplosionSound = () => {
     const audio = new Audio(explosionSound);
-    audio.volume = 0.8;
     audio.play();
   };
 
   const playSkidSound = () => {
     const audio = new Audio(skidSound);
-    audio.volume = 0.04;
+    audio.volume = 0.5;
     audio.play();
   };
 
@@ -281,7 +280,7 @@ const NorthKorea: React.FC = () => {
         </Canvas>
 
         {/* Minimap - Fixed within game area */}
-        {isPlaying && (
+        {isPlaying && !gameOver && (
           <div
             style={{
               position: "absolute",
@@ -521,7 +520,7 @@ const NorthKorea: React.FC = () => {
       )}
 
       {/* Control Instructions - Only show when playing */}
-      {isPlaying && !gameOver && !showCountdown && (
+      {isPlaying && !gameOver && (
         <div
           style={{
             position: "absolute",
