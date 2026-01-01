@@ -11,7 +11,7 @@ const LifeStory: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [isStageChanging, setIsStageChanging] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const rafRef = useRef<number>();
+  const rafRef = useRef<number | undefined>(undefined);
   const audioContextRef = useRef<AudioContext | null>(null);
 
   // Lightning sound effect
