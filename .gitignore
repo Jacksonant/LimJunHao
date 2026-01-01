@@ -24,3 +24,10 @@ dist-ssr
 *.sw?
 
 certificates
+
+# Next.js
+.next/
+out/
+
+# Production
+build
