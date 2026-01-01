@@ -31,3 +31,13 @@ out/
 
 # Production
 build
+
+# Python
+backend/venv/
+backend/__pycache__/
+backend/*.pyc
+backend/*.pyo
+backend/*.pyd
+backend/.env
+backend/.pytest_cache/
+backend/*.egg-info/

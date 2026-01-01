@@ -12,40 +12,36 @@ const Cursor: React.FC = () => {
 
     if (!cursor || !cursorFollower) return;
 
+    let mouseX = 0;
+    let mouseY = 0;
+    let followerX = 0;
+    let followerY = 0;
+    let rafId: number;
+
     const onMouseMove = (e: MouseEvent) => {
-      const { clientX, clientY } = e;
-      
-      // Check if the cursor is over a clickable element
-      const target = e.target as HTMLElement;
-      const isClickable = 
-        target.tagName === 'A' || 
-        target.tagName === 'BUTTON' || 
-        target.closest('a') || 
-        target.closest('button') ||
-        target.classList.contains('hover-link');
-      
-      // Update cursor position
-      cursor.style.transform = `translate(${clientX - 10}px, ${clientY - 10}px)`;
-      
-      // Update follower with some delay
-      requestAnimationFrame(() => {
-        cursorFollower.style.transform = `translate(${clientX - 20}px, ${clientY - 20}px)`;
-      });
-      
-      // Change cursor style for clickable elements
-      if (isClickable) {
-        cursor.style.transform = `translate(${clientX - 10}px, ${clientY - 10}px) scale(1.5)`;
-        cursorFollower.style.transform = `translate(${clientX - 20}px, ${clientY - 20}px) scale(1.5)`;
-        cursor.style.backgroundColor = 'white';
-      } else {
-        cursor.style.backgroundColor = 'var(--color-primary)';
-      }
+      mouseX = e.clientX;
+      mouseY = e.clientY;
     };
 
-    document.addEventListener('mousemove', onMouseMove);
+    const animate = () => {
+      const dx = mouseX - followerX;
+      const dy = mouseY - followerY;
+      
+      followerX += dx * 0.15;
+      followerY += dy * 0.15;
+      
+      cursor.style.transform = `translate3d(${mouseX}px, ${mouseY}px, 0)`;
+      cursorFollower.style.transform = `translate3d(${followerX}px, ${followerY}px, 0)`;
+      
+      rafId = requestAnimationFrame(animate);
+    };
+
+    document.addEventListener('mousemove', onMouseMove, { passive: true });
+    rafId = requestAnimationFrame(animate);
 
     return () => {
       document.removeEventListener('mousemove', onMouseMove);
+      cancelAnimationFrame(rafId);
     };
   }, []);
 
