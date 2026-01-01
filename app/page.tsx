@@ -113,7 +113,7 @@ const HomePage: React.FC = () => {
       {videos.map((video, index) => (
         <video
           key={video.id}
-          ref={(el) => (videoRefs.current[index] = el)}
+          ref={(el) => { videoRefs.current[index] = el; }}
           src="/assets/video/Rick_Roll.mp4"
           autoPlay={true}
           controls={true}

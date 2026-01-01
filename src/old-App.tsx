@@ -129,7 +129,7 @@ const App: React.FC = () => {
         {videos.map((video, index) => (
           <video
             key={video.id}
-            ref={(el) => (videoRefs.current[index] = el)} // Assign the ref to each video
+            ref={(el) => { videoRefs.current[index] = el; }} // Assign the ref to each video
             src="/assets/video/Rick_Roll.mp4"
             autoPlay={true} // Ensure autoplay is set
             controls={true}

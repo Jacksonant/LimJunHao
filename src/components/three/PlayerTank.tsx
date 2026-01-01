@@ -66,7 +66,7 @@ const PlayerTank = React.forwardRef<THREE.Group, PlayerTankProps>(
     const cannonAudioRef = useRef<HTMLAudioElement | null>(null);
     const machineGunAudioRef = useRef<HTMLAudioElement | null>(null);
     const engineAudioRef = useRef<HTMLAudioElement | null>(null);
-    const machineGunInterval = useRef<number | null>(null);
+    const machineGunInterval = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
       cannonAudioRef.current = new Audio("/assets/audio/shell-firing.mp3");
