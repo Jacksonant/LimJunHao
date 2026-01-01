@@ -3,9 +3,11 @@
 import React, { useState, useEffect } from 'react';
 
 const MySection: React.FC = () => {
+  const [mounted, setMounted] = useState(false);
   const [particles, setParticles] = useState<Array<{id: number; left: number; top: number; duration: number; delay: number}>>([]);
 
   useEffect(() => {
+    setMounted(true);
     setParticles(
       Array.from({ length: 20 }, (_, i) => ({
         id: i,
@@ -91,7 +93,7 @@ const MySection: React.FC = () => {
         </div>
       </div>
 
-      {particles.map((particle) => (
+      {mounted && particles.map((particle) => (
         <div
           key={particle.id}
           style={{

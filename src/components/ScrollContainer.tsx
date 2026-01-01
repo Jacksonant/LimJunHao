@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useEffect, useRef } from "react";
+import dynamic from 'next/dynamic';
 import { useScrollInteractions } from "../hooks/useScrollInteractions";
 import NorthKorea from "./NorthKorea";
-import MySection from "./MySection";
+
+const MySection = dynamic(() => import('./MySection'), { ssr: false });
 
 const ScrollContainer: React.FC = () => {
   const { registerSection, scrollProgress } = useScrollInteractions();
