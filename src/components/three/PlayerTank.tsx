@@ -1,11 +1,9 @@
+'use client';
+
 import { useFrame, useLoader } from "@react-three/fiber";
 import { gsap } from "gsap";
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import machineGunSound from "../../assets/audio/machine-gun-firing.mp3";
-import shellFiringSound from "../../assets/audio/shell-firing.mp3";
-import tankMovingSound from "../../assets/audio/tank-moving.mp3";
-import bgSource from "../../assets/img/north_korea_flag.jpeg";
 
 interface PlayerTankProps {
   isActive: boolean;
@@ -71,11 +69,11 @@ const PlayerTank = React.forwardRef<THREE.Group, PlayerTankProps>(
     const machineGunInterval = useRef<number | null>(null);
 
     useEffect(() => {
-      cannonAudioRef.current = new Audio(shellFiringSound);
+      cannonAudioRef.current = new Audio("/assets/audio/shell-firing.mp3");
       cannonAudioRef.current.volume = 1.0;
-      machineGunAudioRef.current = new Audio(machineGunSound);
+      machineGunAudioRef.current = new Audio("/assets/audio/machine-gun-firing.mp3");
       machineGunAudioRef.current.volume = 1.0;
-      engineAudioRef.current = new Audio(tankMovingSound);
+      engineAudioRef.current = new Audio("/assets/audio/tank-moving.mp3");
       engineAudioRef.current.volume = 1.0;
     }, []);
 
@@ -377,14 +375,14 @@ const PlayerTank = React.forwardRef<THREE.Group, PlayerTankProps>(
           <mesh position={[0.1, 0.4, 1.41]}>
             <boxGeometry args={[0.8, 0.4, 0.0]} />
             <meshStandardMaterial
-              map={useLoader(THREE.TextureLoader, bgSource)}
+              map={useLoader(THREE.TextureLoader, "/assets/img/north_korea_flag.jpeg")}
               roughness={0.8}
             />
           </mesh>
           <mesh position={[0.1, 0.4, -1.41]}>
             <boxGeometry args={[0.8, 0.4, 0.0]} />
             <meshStandardMaterial
-              map={useLoader(THREE.TextureLoader, bgSource)}
+              map={useLoader(THREE.TextureLoader, "/assets/img/north_korea_flag.jpeg")}
               roughness={0.8}
             />
           </mesh>

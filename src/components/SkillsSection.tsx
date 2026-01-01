@@ -1,3 +1,5 @@
+'use client';
+
 import { Canvas } from "@react-three/fiber";
 import React, { useRef, useState } from "react";
 import ScrollAnimations from "./ScrollAnimations";

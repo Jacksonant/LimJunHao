@@ -1,6 +1,22 @@
-import React from 'react';
+'use client';
+
+import React, { useState, useEffect } from 'react';
 
 const MySection: React.FC = () => {
+  const [particles, setParticles] = useState<Array<{id: number; left: number; top: number; duration: number; delay: number}>>([]);
+
+  useEffect(() => {
+    setParticles(
+      Array.from({ length: 20 }, (_, i) => ({
+        id: i,
+        left: Math.random() * 100,
+        top: Math.random() * 100,
+        duration: 3 + Math.random() * 2,
+        delay: Math.random() * 2
+      }))
+    );
+  }, []);
+
   return (
     <section style={{
       height: '100vh',
@@ -75,20 +91,19 @@ const MySection: React.FC = () => {
         </div>
       </div>
 
-      {/* Floating particles */}
-      {Array.from({ length: 20 }, (_, i) => (
+      {particles.map((particle) => (
         <div
-          key={i}
+          key={particle.id}
           style={{
             position: 'absolute',
             width: '4px',
             height: '4px',
             background: '#6366f1',
             borderRadius: '50%',
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
+            left: `${particle.left}%`,
+            top: `${particle.top}%`,
             opacity: 0.6,
-            animation: `float ${3 + Math.random() * 2}s ease-in-out infinite ${Math.random() * 2}s`
+            animation: `float ${particle.duration}s ease-in-out infinite ${particle.delay}s`
           }}
         />
       ))}

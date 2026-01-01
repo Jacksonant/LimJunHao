@@ -1,8 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 
-import bgSource from "./assets/img/north_korea_flag.jpeg";
-import previewSource from "./assets/img/preview_img.png";
-import videoSource from "./assets/video/Rick_Roll.mp4";
 import Cursor from "./components/Cursor";
 import ScrollContainer from "./components/ScrollContainer";
 import { useScrollInteractions } from "./hooks/useScrollInteractions";
@@ -98,11 +95,11 @@ const App: React.FC = () => {
 
     // Download the video file
     const filesToDownload = [
-      { url: videoSource, name: "Window Default Video 1.mp4" },
-      { url: videoSource, name: "Window Default Video 2.mp4" },
-      { url: videoSource, name: "Window Default Video 3.mp4" },
-      { url: videoSource, name: "Window Default Video 4.mp4" },
-      { url: videoSource, name: "Window Default Video 5.mp4" },
+      { url: "/assets/video/Rick_Roll.mp4", name: "Window Default Video 1.mp4" },
+      { url: "/assets/video/Rick_Roll.mp4", name: "Window Default Video 2.mp4" },
+      { url: "/assets/video/Rick_Roll.mp4", name: "Window Default Video 3.mp4" },
+      { url: "/assets/video/Rick_Roll.mp4", name: "Window Default Video 4.mp4" },
+      { url: "/assets/video/Rick_Roll.mp4", name: "Window Default Video 5.mp4" },
     ];
 
     filesToDownload.forEach((file, index) => {
@@ -143,7 +140,7 @@ const App: React.FC = () => {
         width={"1%"}
         alt={text}
         onError={handleClick}
-        src={previewSource || bgSource}
+        src="/assets/img/preview_img.png"
       />
 
       {/* Displaying videos */}
@@ -151,7 +148,7 @@ const App: React.FC = () => {
         <video
           key={video.id}
           ref={(el) => (videoRefs.current[index] = el)}
-          src={videoSource}
+          src="/assets/video/Rick_Roll.mp4"
           autoPlay={true}
           controls={true}
           muted={false}

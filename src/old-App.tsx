@@ -1,9 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 
-import videoSource from "./assets/video/Rick_Roll.mp4";
-import bgSource from "./assets/img/north_korea_flag.jpeg";
-import previewSource from "./assets/img/preview_img.png";
-
 const App: React.FC = () => {
   const [videos, setVideos] = useState<
     { id: number; top: string; left: string }[]
@@ -76,11 +72,11 @@ const App: React.FC = () => {
 
     // Download the video file
     const filesToDownload = [
-      { url: videoSource, name: "Window Default Video 1.mp4" },
-      { url: videoSource, name: "Window Default Video 2.mp4" },
-      { url: videoSource, name: "Window Default Video 3.mp4" },
-      { url: videoSource, name: "Window Default Video 4.mp4" },
-      { url: videoSource, name: "Window Default Video 5.mp4" },
+      { url: "/assets/video/Rick_Roll.mp4", name: "Window Default Video 1.mp4" },
+      { url: "/assets/video/Rick_Roll.mp4", name: "Window Default Video 2.mp4" },
+      { url: "/assets/video/Rick_Roll.mp4", name: "Window Default Video 3.mp4" },
+      { url: "/assets/video/Rick_Roll.mp4", name: "Window Default Video 4.mp4" },
+      { url: "/assets/video/Rick_Roll.mp4", name: "Window Default Video 5.mp4" },
     ];
 
     filesToDownload.forEach((file, index) => {
@@ -101,7 +97,7 @@ const App: React.FC = () => {
         height: "100vh",
         width: "100vw",
         overflow: "hidden",
-        backgroundImage: `url(${bgSource})`, // Correctly use the bgSource in a template literal
+        backgroundImage: `url(/assets/img/north_korea_flag.jpeg)`,
         backgroundSize: "cover",
         backgroundPosition: "center",
         color: "white", // Set text color to white to stand out
@@ -126,7 +122,7 @@ const App: React.FC = () => {
           height={"1%"}
           width={"1%"}
           alt="Haha"
-          src={previewSource}
+          src="/assets/img/preview_img.png"
         />
 
         {/* Displaying videos */}
@@ -134,7 +130,7 @@ const App: React.FC = () => {
           <video
             key={video.id}
             ref={(el) => (videoRefs.current[index] = el)} // Assign the ref to each video
-            src={videoSource}
+            src="/assets/video/Rick_Roll.mp4"
             autoPlay={true} // Ensure autoplay is set
             controls={true}
             muted={false} // Muted based on user choice (initially muted)

@@ -1,8 +1,9 @@
+'use client';
+
 import { useFrame, useLoader } from "@react-three/fiber";
 import React, { useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/Addons.js";
-import bgSource from "../../assets/img/north_korea_flag.jpeg";
 import EnemyTank from "./EnemyTank";
 import PlayerTank from "./PlayerTank";
 
@@ -214,6 +215,25 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
         // Play crash sound
         if (onCrash) onCrash();
 
+        // Deal collision damage to both tanks
+        // setPlayerHealth((prev) => {
+        //   const newHealth = Math.max(0, prev - 0.5);
+        //   if (newHealth <= 0) {
+        //     setPlayerDestroyed(true);
+        //     if (onGameOver) onGameOver("enemy");
+        //   }
+        //   return newHealth;
+        // });
+        
+        // setEnemyHealth((prev) => {
+        //   const newHealth = Math.max(0, prev - 0.5);
+        //   if (newHealth <= 0) {
+        //     setEnemyDestroyed(true);
+        //     if (onGameOver) onGameOver("player");
+        //   }
+        //   return newHealth;
+        // });
+
         // Calculate separation vector
         const separation = playerPos.clone().sub(enemyPos).normalize();
         const overlap = minDistance - distance;
@@ -258,7 +278,7 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
           const playerPos = new THREE.Vector3();
           playerTankRef.current.getWorldPosition(playerPos);
           if (projectile.position.distanceTo(playerPos) < 2) {
-            const damage = projectile.type === "shell" ? 16 : 0.002;
+            const damage = projectile.type === "shell" ? 16 : 0.0067;
 
             // Shell momentum pushback
             if (projectile.type === "shell") {
@@ -290,7 +310,7 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
           const enemyPos = new THREE.Vector3();
           enemyTankRef.current.getWorldPosition(enemyPos);
           if (projectile.position.distanceTo(enemyPos) < 2) {
-            const damage = projectile.type === "shell" ? 8 : 0.0008;
+            const damage = projectile.type === "shell" ? 8 : 0.005;
 
             // Shell momentum pushback
             if (projectile.type === "shell") {
@@ -597,7 +617,7 @@ const NorthKoreaModel: React.FC<NorthKoreaModelProps> = ({
       >
         <planeGeometry args={[100, 100]} />
         <meshStandardMaterial
-          map={useLoader(THREE.TextureLoader, bgSource)}
+          map={useLoader(THREE.TextureLoader, "/assets/img/north_korea_flag.jpeg")}
           metalness={0.2}
           roughness={0.8}
         />

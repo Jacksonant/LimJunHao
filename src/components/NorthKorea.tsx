@@ -1,3 +1,5 @@
+'use client';
+
 import { OrbitControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import React, { useEffect, useRef, useState } from "react";
@@ -5,10 +7,6 @@ import { useLoading } from "../contexts/LoadingContext";
 import NorthKoreaModel from "./three/NorthKoreaModel";
 import Minimap from "./three/Minimap";
 import * as THREE from "three";
-import screamSound from "../assets/audio/scream.mp3";
-import crashSound from "../assets/audio/crash.wav";
-import explosionSound from "../assets/audio/explosion.wav";
-import skidSound from "../assets/audio/skid.wav";
 
 interface WindowWithWebkitAudioContext extends Window {
   webkitAudioContext?: typeof AudioContext;
@@ -35,24 +33,24 @@ const NorthKorea: React.FC = () => {
   const lastCountdownValue = useRef(5);
 
   const playScreamSound = () => {
-    const audio = new Audio(screamSound);
+    const audio = new Audio("/assets/audio/scream.mp3");
     audio.volume = 0.7;
     audio.play();
   };
 
   const playCrashSound = () => {
-    const audio = new Audio(crashSound);
+    const audio = new Audio("/assets/audio/crash.wav");
     audio.volume = 0.5;
     audio.play();
   };
 
   const playExplosionSound = () => {
-    const audio = new Audio(explosionSound);
+    const audio = new Audio("/assets/audio/explosion.wav");
     audio.play();
   };
 
   const playSkidSound = () => {
-    const audio = new Audio(skidSound);
+    const audio = new Audio("/assets/audio/skid.wav");
     audio.volume = 0.5;
     audio.play();
   };

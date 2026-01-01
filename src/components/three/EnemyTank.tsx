@@ -1,9 +1,8 @@
+'use client';
+
 import { useFrame } from "@react-three/fiber";
 import React, { useRef, useState, useEffect } from "react";
 import * as THREE from "three";
-import machineGunSound from "../../assets/audio/machine-gun-firing.mp3";
-import shellFiringSound from "../../assets/audio/shell-firing.mp3";
-import tankMovingSound from "../../assets/audio/tank-moving.mp3";
 
 interface EnemyTankProps {
   position: THREE.Vector3;
@@ -61,11 +60,11 @@ const EnemyTank = React.forwardRef<THREE.Group, EnemyTankProps>(
     const engineAudioRef = useRef<HTMLAudioElement | null>(null);
 
     useEffect(() => {
-      cannonAudioRef.current = new Audio(shellFiringSound);
+      cannonAudioRef.current = new Audio("/assets/audio/shell-firing.mp3");
       cannonAudioRef.current.volume = 1.0;
-      machineGunAudioRef.current = new Audio(machineGunSound);
+      machineGunAudioRef.current = new Audio("/assets/audio/machine-gun-firing.mp3");
       machineGunAudioRef.current.volume = 1.0;
-      engineAudioRef.current = new Audio(tankMovingSound);
+      engineAudioRef.current = new Audio("/assets/audio/tank-moving.mp3");
       engineAudioRef.current.volume = 1.0;
     }, []);
 
