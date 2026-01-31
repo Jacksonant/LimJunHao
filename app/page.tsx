@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from "react";
-import Cursor from "../src/components/Cursor";
-import ScrollContainer from "../src/components/ScrollContainer";
-import { useScrollInteractions } from "../src/hooks/useScrollInteractions";
-import { LoadingProvider } from "../src/contexts/LoadingContext";
+import Cursor from "./components/Cursor";
+import ScrollContainer from "./components/ScrollContainer";
+import { useScrollInteractions } from "./hooks/useScrollInteractions";
+import { LoadingProvider } from "./contexts/LoadingContext";
 
 const HomePage: React.FC = () => {
   const { scrollProgress } = useScrollInteractions();

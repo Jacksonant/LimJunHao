@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import '../src/App.css';
+import './App.css';
 import FloatingChatbot from './components/FloatingChatbot';
 
 export const metadata: Metadata = {
