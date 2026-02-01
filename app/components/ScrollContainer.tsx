@@ -4,16 +4,19 @@ import React, { useEffect, useRef } from "react";
 import dynamic from 'next/dynamic';
 import { useScrollInteractions } from "../hooks/useScrollInteractions";
 import NorthKorea from "./NorthKorea";
+import SinSection from "./SinSection";
 
 const MySection = dynamic(() => import('./MySection'), { ssr: false });
 
 const ScrollContainer: React.FC = () => {
   const { registerSection, scrollProgress } = useScrollInteractions();
   const heroRef = useRef<HTMLDivElement>(null);
+  const sinRef = useRef<HTMLDivElement>(null);
   const myRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (heroRef.current) registerSection("hero", heroRef.current);
+    if (sinRef.current) registerSection("sin", sinRef.current);
     if (myRef.current) registerSection("my", myRef.current);
   }, [registerSection]);
 
@@ -46,8 +49,8 @@ const ScrollContainer: React.FC = () => {
           gap: "1rem",
         }}
       >
-        {["Tank", "About"].map((name, index) => {
-          const refs = [heroRef, myRef];
+        {["Tank", "Analysis", "About"].map((name, index) => {
+          const refs = [heroRef, sinRef, myRef];
           return (
             <div
               key={name}
@@ -96,6 +99,11 @@ const ScrollContainer: React.FC = () => {
       {/* Hero Section */}
       <div ref={heroRef} id="hero-section">
         <NorthKorea />
+      </div>
+
+      {/* Sin section */}
+      <div ref={sinRef} id="sin-section">
+        <SinSection />
       </div>
 
       {/* My Section */}
