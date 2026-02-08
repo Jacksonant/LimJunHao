@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import './App.css';
-import FloatingChatbot from './components/FloatingChatbot';
+import FloatingChatbot from './components/ClientChatbot';
 
 export const metadata: Metadata = {
   title: 'Lim Jun Hao',
@@ -14,7 +14,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>
+      <body suppressHydrationWarning>
         {children}
         <FloatingChatbot />
       </body>

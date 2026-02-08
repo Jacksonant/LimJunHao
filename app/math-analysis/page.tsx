@@ -148,6 +148,9 @@ export default function AnalysisPage() {
           if (hasMore) {
             loadNextPage(1, result.data);
           }
+        })
+        .catch((err)=>{
+          console.log(err, 'error when analyzing first batch of data')
         });
     }
   };
@@ -178,7 +181,9 @@ export default function AnalysisPage() {
             prevBacktestRef.current = backtestResult;
             setBacktestResult(analyticsResult.backtest);
           }
-        });
+        }).catch((err)=>{
+          console.log(err, 'error when analyzing remaining batch of data')
+        });;
       
       // Continue loading if more data exists
       if (result.hasMore) {
