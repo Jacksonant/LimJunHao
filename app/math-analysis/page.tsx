@@ -19,12 +19,18 @@ interface DrawPrediction {
   method: string;
 }
 
+/**
+ * ✅ FIX: allow optional drawsTested/totalDraws if your API returns them.
+ * If your API doesn't return them, this still works.
+ */
 interface BacktestResult {
   predictions: DrawPrediction[];
   overallAccuracy: number;
   avgMatches: number;
   bestDraw: DrawPrediction;
   worstDraw: DrawPrediction;
+  drawsTested?: number;
+  totalDraws?: number;
 }
 
 interface AnalysisResult {
@@ -46,7 +52,13 @@ interface AnimatedNumberProps {
   suffix?: string;
 }
 
-const AnimatedNumber: React.FC<AnimatedNumberProps> = ({ start, end, decimals = 0, duration = 0.8, suffix = '' }) => {
+const AnimatedNumber: React.FC<AnimatedNumberProps> = ({
+  start,
+  end,
+  decimals = 0,
+  duration = 0.8,
+  suffix = '',
+}) => {
   const ref = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
@@ -55,7 +67,7 @@ const AnimatedNumber: React.FC<AnimatedNumberProps> = ({ start, end, decimals = 
         startVal: start,
         decimalPlaces: decimals,
         duration,
-        suffix
+        suffix,
       });
       countUp.start();
     }
@@ -64,134 +76,146 @@ const AnimatedNumber: React.FC<AnimatedNumberProps> = ({ start, end, decimals = 
   return <span ref={ref}>{start}</span>;
 };
 
-const LOTTERY_TYPES = [
-  { id: 'supreme-toto-6-58', name: 'Supreme Toto 6/58', range: 58, picks: 6 },
-];
-
-
+const LOTTERY_TYPES = [{ id: 'supreme-toto-6-58', name: 'Supreme Toto 6/58', range: 58, picks: 6 }];
 
 export default function AnalysisPage() {
   const [activeTab, setActiveTab] = useState('supreme-toto-6-58');
   const [data, setData] = useState<DrawData[]>([]);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [backtestResult, setBacktestResult] = useState<BacktestResult | null>(null);
-  const [loading, setLoading] = useState(true);
+
+  // ✅ FIX: separate initial data loading vs analysis loading
+  const [loading, setLoading] = useState(true); // loading first page
+  const [isAnalyzing, setIsAnalyzing] = useState(false); // running /api/lottery-analysis
+
   const [showAllResults, setShowAllResults] = useState(false);
   const [exactPositionMatch, setExactPositionMatch] = useState(true);
 
   const [totalCount, setTotalCount] = useState(0);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+
   const prevAnalysisRef = useRef<AnalysisResult | null>(null);
   const prevBacktestRef = useRef<BacktestResult | null>(null);
 
   // Memoize expensive computations
   const similarDrawsData = useMemo(() => {
     if (!data || data.length === 0) return [];
-    
-    return data.map((draw, idx) => {
-      const sorted1 = [...draw.numbers].sort((a, b) => a - b);
-      const similarDraws = data.filter((d, i) => {
-        if (i === idx) return false;
-        const sorted2 = [...d.numbers].sort((a, b) => a - b);
-        if (exactPositionMatch) {
-          let posMatches = 0;
-          for (let j = 0; j < sorted1.length; j++) {
-            if (sorted1[j] === sorted2[j]) posMatches++;
+
+    return data
+      .map((draw, idx) => {
+        const sorted1 = [...draw.numbers].sort((a, b) => a - b);
+        const similarDraws = data.filter((d, i) => {
+          if (i === idx) return false;
+          const sorted2 = [...d.numbers].sort((a, b) => a - b);
+          if (exactPositionMatch) {
+            let posMatches = 0;
+            for (let j = 0; j < sorted1.length; j++) {
+              if (sorted1[j] === sorted2[j]) posMatches++;
+            }
+            return posMatches >= 4;
+          } else {
+            const matches = draw.numbers.filter((n) => d.numbers.includes(n)).length;
+            return matches >= 4;
           }
-          return posMatches >= 4;
-        } else {
-          const matches = draw.numbers.filter(n => d.numbers.includes(n)).length;
-          return matches >= 4;
-        }
-      });
-      
-      return similarDraws.length > 0 ? { draw, sorted1, similarDraws } : null;
-    }).filter(Boolean);
+        });
+
+        return similarDraws.length > 0 ? { draw, sorted1, similarDraws } : null;
+      })
+      .filter(Boolean);
   }, [data, exactPositionMatch]);
 
   const fetchPage = async (page: number) => {
     const res = await fetch(`/api/lottery?type=${activeTab}&page=${page}`);
+    if (!res.ok) throw new Error(`Lottery API error: ${res.status}`);
+    return res.json();
+  };
+
+  const fetchAnalysis = async () => {
+    const res = await fetch('/api/lottery-analysis', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: activeTab }),
+    });
+    if (!res.ok) throw new Error(`Analysis API error: ${res.status}`);
     return res.json();
   };
 
   const loadAndAnalyze = async () => {
-    setLoading(false); // Show empty cards immediately
+    // Reset UI state
+    setLoading(true);
+    setIsAnalyzing(false);
+    setIsLoadingMore(false);
+    setShowAllResults(false);
+
     setData([]);
     setAnalysis(null);
     setBacktestResult(null);
-    
-    // Step 1: Fetch first page of data
-    const result = await fetchPage(0);
-    if (result.data && result.data.length > 0) {
-      setData(result.data);
-      setTotalCount(result.count);
-      const hasMore = result.hasMore;
-      
-      // Step 2: Run analytics on first batch
-      fetch('/api/lottery-analysis', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: activeTab })
-      })
-        .then(res => res.json())
-        .then(analyticsResult => {
-          if (analyticsResult.analysis) {
-            setAnalysis(analyticsResult.analysis);
-            prevAnalysisRef.current = analyticsResult.analysis;
-          }
-          if (analyticsResult.backtest) {
-            setBacktestResult(analyticsResult.backtest);
-            prevBacktestRef.current = analyticsResult.backtest;
-          }
-          
-          // Step 3: Start loading more data after analytics complete
-          if (hasMore) {
-            loadNextPage(1, result.data);
-          }
-        })
-        .catch((err)=>{
-          console.log(err, 'error when analyzing first batch of data')
-        });
+
+    try {
+      // 1) load first page (fast)
+      const first = await fetchPage(0);
+
+      setData(first.data || []);
+      setTotalCount(first.count || 0);
+
+      // Done loading first page => show UI
+      setLoading(false);
+
+      // 2) run analysis/backtest once (server does full DB work)
+      setIsAnalyzing(true);
+      const analyticsResult = await fetchAnalysis();
+      setIsAnalyzing(false);
+
+      if (analyticsResult.error) {
+        console.error('Analysis error:', analyticsResult.error);
+        return;
+      }
+
+      if (analyticsResult.analysis) {
+        prevAnalysisRef.current = analyticsResult.analysis;
+        setAnalysis(analyticsResult.analysis);
+      }
+
+      if (analyticsResult.backtest) {
+        prevBacktestRef.current = analyticsResult.backtest;
+        setBacktestResult(analyticsResult.backtest);
+      }
+
+      // 3) load remaining pages for UI display only (NO more analysis calls)
+      if (first.hasMore) {
+        loadNextPage(1, first.data || []);
+      }
+    } catch (err) {
+      console.error(err);
+      setLoading(false);
+      setIsAnalyzing(false);
+      setIsLoadingMore(false);
     }
   };
 
   const loadNextPage = async (page: number, currentData: DrawData[]) => {
     setIsLoadingMore(true);
-    
-    // Fetch next page
-    const result = await fetchPage(page);
-    
-    if (result.data && result.data.length > 0) {
-      const newData = [...currentData, ...result.data];
-      setData(newData);
-      
-      // Run analytics on updated dataset
-      await fetch('/api/lottery-analysis', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: activeTab })
-      })
-        .then(res => res.json())
-        .then(analyticsResult => {
-          if (analyticsResult.analysis) {
-            prevAnalysisRef.current = analysis;
-            setAnalysis(analyticsResult.analysis);
-          }
-          if (analyticsResult.backtest) {
-            prevBacktestRef.current = backtestResult;
-            setBacktestResult(analyticsResult.backtest);
-          }
-        }).catch((err)=>{
-          console.log(err, 'error when analyzing remaining batch of data')
-        });;
-      
-      // Continue loading if more data exists
-      if (result.hasMore) {
-        setTimeout(() => loadNextPage(page + 1, newData), 100);
+
+    try {
+      const result = await fetchPage(page);
+
+      if (result.data && result.data.length > 0) {
+        const newData = [...currentData, ...result.data];
+        setData(newData);
+
+        // ✅ FIX: DO NOT call /api/lottery-analysis again here.
+        // It recomputes full DB and will overwrite your backtest numbers with "all rows" results.
+
+        if (result.hasMore) {
+          setTimeout(() => loadNextPage(page + 1, newData), 100);
+        } else {
+          setIsLoadingMore(false);
+        }
       } else {
         setIsLoadingMore(false);
       }
-    } else {
+    } catch (err) {
+      console.error(err);
       setIsLoadingMore(false);
     }
   };
@@ -204,12 +228,26 @@ export default function AnalysisPage() {
     return (
       <>
         <Cursor />
-        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#111827' }}>
-          <div style={{ color: '#fff', fontSize: '20px' }}>Initializing...</div>
+        <div
+          style={{
+            minHeight: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#111827',
+          }}
+        >
+          <div style={{ color: '#fff', fontSize: '20px' }}>Loading first page...</div>
         </div>
       </>
     );
   }
+
+  // ✅ FIX: reliable draws tested value
+  const drawsTested =
+    backtestResult?.drawsTested ??
+    backtestResult?.predictions?.length ??
+    0;
 
   return (
     <>
@@ -223,10 +261,15 @@ export default function AnalysisPage() {
                 Loading more data... ({data.length}/{totalCount})
               </span>
             )}
+            {isAnalyzing && (
+              <span style={{ fontSize: '16px', color: '#f59e0b', marginLeft: '16px' }}>
+                Analyzing...
+              </span>
+            )}
           </h1>
 
           <div style={{ display: 'flex', gap: '8px', marginBottom: '32px', borderBottom: '2px solid #374151' }}>
-            {LOTTERY_TYPES.map(type => (
+            {LOTTERY_TYPES.map((type) => (
               <button
                 key={type.id}
                 onClick={() => setActiveTab(type.id)}
@@ -237,7 +280,7 @@ export default function AnalysisPage() {
                   border: 'none',
                   cursor: 'pointer',
                   fontSize: '16px',
-                  fontWeight: activeTab === type.id ? 'bold' : 'normal'
+                  fontWeight: activeTab === type.id ? 'bold' : 'normal',
                 }}
               >
                 {type.name}
@@ -246,61 +289,74 @@ export default function AnalysisPage() {
           </div>
 
           {data.length === 0 ? (
-            <div style={{ color: '#9ca3af', textAlign: 'center', padding: '40px' }}>
-              Loading data...
-            </div>
+            <div style={{ color: '#9ca3af', textAlign: 'center', padding: '40px' }}>Loading data...</div>
           ) : (
             <>
-              {/* Empty card placeholders while analytics load */}
+              {/* ✅ FIX: explicit analyzing placeholder */}
               {!backtestResult && (
                 <div style={{ backgroundColor: '#1f2937', borderRadius: '12px', padding: '24px', marginBottom: '24px' }}>
                   <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#fff', marginBottom: '16px' }}>
                     Model Performance
                   </h2>
                   <div style={{ color: '#9ca3af', textAlign: 'center', padding: '40px' }}>
-                    Analyzing data...
+                    {isAnalyzing ? 'Analyzing data (full history)...' : 'Waiting for analysis...'}
                   </div>
                 </div>
               )}
-              
+
               {backtestResult && (
                 <>
                   <div style={{ backgroundColor: '#1f2937', borderRadius: '12px', padding: '24px', marginBottom: '24px' }}>
                     <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#fff', marginBottom: '16px' }}>
                       Model Performance
                     </h2>
+
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
                       <div style={{ backgroundColor: '#374151', borderRadius: '8px', padding: '16px' }}>
                         <div style={{ color: '#9ca3af', fontSize: '14px' }}>Overall Accuracy</div>
                         <div style={{ color: '#10b981', fontSize: '28px', fontWeight: 'bold' }}>
-                          <AnimatedNumber 
+                          <AnimatedNumber
                             start={prevBacktestRef.current?.overallAccuracy || 0}
-                            end={backtestResult.overallAccuracy} 
-                            decimals={1} 
+                            end={backtestResult.overallAccuracy}
+                            decimals={1}
                             duration={0.8}
                             suffix="%"
                           />
                         </div>
                       </div>
+
                       <div style={{ backgroundColor: '#374151', borderRadius: '8px', padding: '16px' }}>
                         <div style={{ color: '#9ca3af', fontSize: '14px' }}>Avg Matches</div>
                         <div style={{ color: '#fff', fontSize: '28px', fontWeight: 'bold' }}>
-                          <AnimatedNumber 
+                          <AnimatedNumber
                             start={prevBacktestRef.current?.avgMatches || 0}
-                            end={backtestResult.avgMatches} 
-                            decimals={2} 
+                            end={backtestResult.avgMatches}
+                            decimals={2}
                             duration={0.8}
-                          /> / 6
+                          />{' '}
+                          / 6
                         </div>
                       </div>
+
                       <div style={{ backgroundColor: '#374151', borderRadius: '8px', padding: '16px' }}>
                         <div style={{ color: '#9ca3af', fontSize: '14px' }}>Draws Tested</div>
+
+                        {/* ✅ FIX #1: drawsTested value is stable and not overwritten by page-load analysis calls */}
                         <div style={{ color: '#fff', fontSize: '28px', fontWeight: 'bold' }}>
-                          <AnimatedNumber 
-                            start={prevBacktestRef.current?.predictions.length || 0}
-                            end={backtestResult.predictions.length} 
+                          <AnimatedNumber
+                            start={
+                              prevBacktestRef.current?.drawsTested ??
+                              prevBacktestRef.current?.predictions?.length ??
+                              0
+                            }
+                            end={drawsTested}
                             duration={0.8}
                           />
+                        </div>
+
+                        {/* Optional: helpful context */}
+                        <div style={{ color: '#9ca3af', fontSize: '12px', marginTop: '6px' }}>
+                          Total rows (loaded): {data.length} / {totalCount || data.length}
                         </div>
                       </div>
                     </div>
@@ -309,7 +365,7 @@ export default function AnalysisPage() {
                   <div style={{ backgroundColor: '#1f2937', borderRadius: '12px', padding: '24px', marginBottom: '24px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                       <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#fff' }}>
-                        Prediction Results ({backtestResult.predictions.length} draws)
+                        Prediction Results ({drawsTested} draws)
                       </h2>
                       <button
                         onClick={() => setShowAllResults(!showAllResults)}
@@ -320,12 +376,13 @@ export default function AnalysisPage() {
                           border: 'none',
                           borderRadius: '6px',
                           cursor: 'pointer',
-                          fontSize: '14px'
+                          fontSize: '14px',
                         }}
                       >
                         {showAllResults ? 'Show Less' : 'Show All Results'}
                       </button>
                     </div>
+
                     <div style={{ overflowX: 'auto' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead>
@@ -338,67 +395,84 @@ export default function AnalysisPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {(showAllResults ? backtestResult.predictions : backtestResult.predictions.slice(0, 20)).map((pred, idx) => (
-                            <tr key={idx} style={{ borderBottom: '1px solid #374151' }}>
-                              <td style={{ padding: '12px', color: '#d1d5db' }}>{pred.draw_date}</td>
-                              <td style={{ padding: '12px' }}>
-                                <div style={{ display: 'flex', gap: '4px' }}>
-                                  {pred.predicted.map(num => (
-                                    <span key={num} style={{
-                                      width: '28px',
-                                      height: '28px',
-                                      backgroundColor: pred.actual.includes(num) ? '#10b981' : '#3b82f6',
-                                      borderRadius: '50%',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      color: '#fff',
+                          {(showAllResults ? backtestResult.predictions : backtestResult.predictions.slice(0, 20)).map(
+                            (pred, idx) => (
+                              <tr key={idx} style={{ borderBottom: '1px solid #374151' }}>
+                                <td style={{ padding: '12px', color: '#d1d5db' }}>{pred.draw_date}</td>
+                                <td style={{ padding: '12px' }}>
+                                  <div style={{ display: 'flex', gap: '4px' }}>
+                                    {pred.predicted.map((num) => (
+                                      <span
+                                        key={num}
+                                        style={{
+                                          width: '28px',
+                                          height: '28px',
+                                          backgroundColor: pred.actual.includes(num) ? '#10b981' : '#3b82f6',
+                                          borderRadius: '50%',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          color: '#fff',
+                                          fontWeight: 'bold',
+                                          fontSize: '12px',
+                                        }}
+                                      >
+                                        {num}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </td>
+                                <td style={{ padding: '12px' }}>
+                                  <div style={{ display: 'flex', gap: '4px' }}>
+                                    {pred.actual.map((num) => (
+                                      <span
+                                        key={num}
+                                        style={{
+                                          width: '28px',
+                                          height: '28px',
+                                          backgroundColor: '#6366f1',
+                                          borderRadius: '50%',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          color: '#fff',
+                                          fontWeight: 'bold',
+                                          fontSize: '12px',
+                                        }}
+                                      >
+                                        {num}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </td>
+                                <td style={{ padding: '12px', textAlign: 'center' }}>
+                                  <span
+                                    style={{
+                                      color: pred.matches >= 3 ? '#10b981' : '#9ca3af',
                                       fontWeight: 'bold',
-                                      fontSize: '12px'
-                                    }}>
-                                      {num}
-                                    </span>
-                                  ))}
-                                </div>
-                              </td>
-                              <td style={{ padding: '12px' }}>
-                                <div style={{ display: 'flex', gap: '4px' }}>
-                                  {pred.actual.map(num => (
-                                    <span key={num} style={{
-                                      width: '28px',
-                                      height: '28px',
-                                      backgroundColor: '#6366f1',
-                                      borderRadius: '50%',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      color: '#fff',
+                                    }}
+                                  >
+                                    {pred.matches} / 6
+                                  </span>
+                                </td>
+                                <td style={{ padding: '12px', textAlign: 'center' }}>
+                                  <span
+                                    style={{
+                                      color:
+                                        pred.accuracy >= 50
+                                          ? '#10b981'
+                                          : pred.accuracy >= 33
+                                          ? '#f59e0b'
+                                          : '#9ca3af',
                                       fontWeight: 'bold',
-                                      fontSize: '12px'
-                                    }}>
-                                      {num}
-                                    </span>
-                                  ))}
-                                </div>
-                              </td>
-                              <td style={{ padding: '12px', textAlign: 'center' }}>
-                                <span style={{
-                                  color: pred.matches >= 3 ? '#10b981' : '#9ca3af',
-                                  fontWeight: 'bold'
-                                }}>
-                                  {pred.matches} / 6
-                                </span>
-                              </td>
-                              <td style={{ padding: '12px', textAlign: 'center' }}>
-                                <span style={{
-                                  color: pred.accuracy >= 50 ? '#10b981' : pred.accuracy >= 33 ? '#f59e0b' : '#9ca3af',
-                                  fontWeight: 'bold'
-                                }}>
-                                  {pred.accuracy.toFixed(1)}%
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
+                                    }}
+                                  >
+                                    {pred.accuracy.toFixed(1)}%
+                                  </span>
+                                </td>
+                              </tr>
+                            )
+                          )}
                         </tbody>
                       </table>
                     </div>
@@ -406,8 +480,9 @@ export default function AnalysisPage() {
                 </>
               )}
 
+              {/* ✅ your analysis section remains the same below */}
               {analysis && (
-                <>
+                 <>
                   {/* All Even/Odd Draws Section */}
                   <div style={{ backgroundColor: '#1f2937', borderRadius: '12px', padding: '24px', marginBottom: '24px' }}>
                     <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#fff', marginBottom: '16px' }}>Special Patterns</h2>
