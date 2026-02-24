@@ -3,6 +3,13 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { CountUp } from 'countup.js';
 import Cursor from '../components/Cursor';
+import { DEFAULT_LOTTERY_ID, LOTTERY_CONFIGS, getLotteryConfig } from '@/lib/lotteryConfig';
+import {
+  calculateSessionSummary,
+  filterPredictionsByDateRange,
+  getPredictionDateBounds,
+  sortPredictionsByDrawDateDesc,
+} from './lib/prediction-utils';
 
 interface DrawData {
   draw_date: string;
@@ -76,24 +83,8 @@ const AnimatedNumber: React.FC<AnimatedNumberProps> = ({
   return <span ref={ref}>{start}</span>;
 };
 
-const LOTTERY_TYPES = [{ id: 'supreme-toto-6-58', name: 'Supreme Toto 6/58', range: 58, picks: 6 }];
-
-const parseDrawDate = (value: string): number => {
-  const parsed = Date.parse(value);
-  if (!Number.isNaN(parsed)) return parsed;
-
-  const match = value.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/);
-  if (!match) return Number.NEGATIVE_INFINITY;
-
-  const day = Number(match[1]);
-  const month = Number(match[2]);
-  const year = Number(match[3].length === 2 ? `20${match[3]}` : match[3]);
-  const fallback = new Date(year, month - 1, day).getTime();
-  return Number.isNaN(fallback) ? Number.NEGATIVE_INFINITY : fallback;
-};
-
 export default function AnalysisPage() {
-  const [activeTab, setActiveTab] = useState('supreme-toto-6-58');
+  const [activeTab, setActiveTab] = useState(DEFAULT_LOTTERY_ID);
   const [data, setData] = useState<DrawData[]>([]);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [backtestResult, setBacktestResult] = useState<BacktestResult | null>(null);
@@ -104,6 +95,8 @@ export default function AnalysisPage() {
 
   const [showAllResults, setShowAllResults] = useState(false);
   const [exactPositionMatch, setExactPositionMatch] = useState(true);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   const [totalCount, setTotalCount] = useState(0);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -160,6 +153,8 @@ export default function AnalysisPage() {
     setIsAnalyzing(false);
     setIsLoadingMore(false);
     setShowAllResults(false);
+    setDateFrom('');
+    setDateTo('');
 
     setData([]);
     setAnalysis(null);
@@ -262,12 +257,20 @@ export default function AnalysisPage() {
     backtestResult?.drawsTested ??
     backtestResult?.predictions?.length ??
     0;
-  const sortedPredictionResults = [...(backtestResult?.predictions ?? [])].sort(
-    (a, b) => parseDrawDate(b.draw_date) - parseDrawDate(a.draw_date)
-  );
+  const activeLotteryConfig = getLotteryConfig(activeTab);
+  const sortedPredictionResults = sortPredictionsByDrawDateDesc(backtestResult?.predictions ?? []);
+  const predictionDateBounds = getPredictionDateBounds(sortedPredictionResults);
+  const filteredPredictionResults = filterPredictionsByDateRange(sortedPredictionResults, dateFrom, dateTo);
+
   const displayedPredictionResults = showAllResults
-    ? sortedPredictionResults
-    : sortedPredictionResults.slice(0, 20);
+    ? filteredPredictionResults
+    : filteredPredictionResults.slice(0, 20);
+
+  const sessionSummary = calculateSessionSummary(
+    filteredPredictionResults,
+    activeLotteryConfig.sessionCostRM,
+    activeLotteryConfig.payoutByMatch
+  );
 
   return (
     <>
@@ -289,7 +292,7 @@ export default function AnalysisPage() {
           </h1>
 
           <div style={{ display: 'flex', gap: '8px', marginBottom: '32px', borderBottom: '2px solid #374151' }}>
-            {LOTTERY_TYPES.map((type) => (
+            {LOTTERY_CONFIGS.map((type) => (
               <button
                 key={type.id}
                 onClick={() => setActiveTab(type.id)}
@@ -385,22 +388,119 @@ export default function AnalysisPage() {
                   <div style={{ backgroundColor: '#1f2937', borderRadius: '12px', padding: '24px', marginBottom: '24px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                       <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#fff' }}>
-                        Prediction Results ({drawsTested} draws)
+                        Prediction Results ({sessionSummary.totalSessions} filtered / {drawsTested} total)
                       </h2>
-                      <button
-                        onClick={() => setShowAllResults(!showAllResults)}
-                        style={{
-                          padding: '8px 16px',
-                          backgroundColor: '#3b82f6',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          fontSize: '14px',
-                        }}
-                      >
-                        {showAllResults ? 'Show Less' : 'Show All Results'}
-                      </button>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          onClick={() => {
+                            setDateFrom('');
+                            setDateTo('');
+                          }}
+                          style={{
+                            padding: '8px 16px',
+                            backgroundColor: '#374151',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                          }}
+                        >
+                          Reset Dates
+                        </button>
+                        <button
+                          onClick={() => setShowAllResults(!showAllResults)}
+                          style={{
+                            padding: '8px 16px',
+                            backgroundColor: '#3b82f6',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                          }}
+                        >
+                          {showAllResults ? 'Show Less' : 'Show All Results'}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                        gap: '12px',
+                        marginBottom: '16px',
+                      }}
+                    >
+                      <div style={{ backgroundColor: '#374151', borderRadius: '8px', padding: '12px' }}>
+                        <div style={{ color: '#9ca3af', fontSize: '12px' }}>Date From</div>
+                        <input
+                          type="date"
+                          value={dateFrom}
+                          min={predictionDateBounds.min || undefined}
+                          max={predictionDateBounds.max || undefined}
+                          onChange={(e) => setDateFrom(e.target.value)}
+                          style={{
+                            width: '100%',
+                            marginTop: '6px',
+                            backgroundColor: '#111827',
+                            border: '1px solid #4b5563',
+                            borderRadius: '6px',
+                            color: '#fff',
+                            padding: '8px',
+                          }}
+                        />
+                      </div>
+                      <div style={{ backgroundColor: '#374151', borderRadius: '8px', padding: '12px' }}>
+                        <div style={{ color: '#9ca3af', fontSize: '12px' }}>Date To</div>
+                        <input
+                          type="date"
+                          value={dateTo}
+                          min={predictionDateBounds.min || undefined}
+                          max={predictionDateBounds.max || undefined}
+                          onChange={(e) => setDateTo(e.target.value)}
+                          style={{
+                            width: '100%',
+                            marginTop: '6px',
+                            backgroundColor: '#111827',
+                            border: '1px solid #4b5563',
+                            borderRadius: '6px',
+                            color: '#fff',
+                            padding: '8px',
+                          }}
+                        />
+                      </div>
+                      <div style={{ backgroundColor: '#374151', borderRadius: '8px', padding: '12px' }}>
+                        <div style={{ color: '#9ca3af', fontSize: '12px' }}>
+                          Total Cost (RM{activeLotteryConfig.sessionCostRM}/session)
+                        </div>
+                        <div style={{ color: '#fff', fontSize: '22px', fontWeight: 'bold', marginTop: '6px' }}>
+                          RM{sessionSummary.totalCost.toLocaleString()}
+                        </div>
+                      </div>
+                      <div style={{ backgroundColor: '#374151', borderRadius: '8px', padding: '12px' }}>
+                        <div style={{ color: '#9ca3af', fontSize: '12px' }}>Total Winnings</div>
+                        <div style={{ color: '#10b981', fontSize: '22px', fontWeight: 'bold', marginTop: '6px' }}>
+                          RM{sessionSummary.totalWinnings.toLocaleString()}
+                        </div>
+                      </div>
+                      <div style={{ backgroundColor: '#374151', borderRadius: '8px', padding: '12px' }}>
+                        <div style={{ color: '#9ca3af', fontSize: '12px' }}>Net (Win - Cost)</div>
+                        <div
+                          style={{
+                            color: sessionSummary.netProfit >= 0 ? '#10b981' : '#ef4444',
+                            fontSize: '22px',
+                            fontWeight: 'bold',
+                            marginTop: '6px',
+                          }}
+                        >
+                          RM{sessionSummary.netProfit.toLocaleString()}
+                        </div>
+                        <div style={{ color: '#9ca3af', fontSize: '11px', marginTop: '4px' }}>
+                          Jackpot hits: {sessionSummary.jackpotWins} (jackpot amount excluded)
+                        </div>
+                      </div>
                     </div>
 
                     <div style={{ overflowX: 'auto' }}>
@@ -412,6 +512,7 @@ export default function AnalysisPage() {
                             <th style={{ padding: '12px', textAlign: 'left', color: '#9ca3af' }}>Actual</th>
                             <th style={{ padding: '12px', textAlign: 'center', color: '#9ca3af' }}>Matches</th>
                             <th style={{ padding: '12px', textAlign: 'center', color: '#9ca3af' }}>Accuracy</th>
+                            <th style={{ padding: '12px', textAlign: 'center', color: '#9ca3af' }}>Prize</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -487,6 +588,18 @@ export default function AnalysisPage() {
                                     }}
                                   >
                                     {pred.accuracy.toFixed(1)}%
+                                  </span>
+                                </td>
+                                <td style={{ padding: '12px', textAlign: 'center' }}>
+                                  <span
+                                    style={{
+                                      color: pred.matches >= 3 ? '#10b981' : '#9ca3af',
+                                      fontWeight: 'bold',
+                                    }}
+                                  >
+                                    {pred.matches === 6
+                                      ? 'Jackpot'
+                                      : `RM${(activeLotteryConfig.payoutByMatch[pred.matches] || 0).toLocaleString()}`}
                                   </span>
                                 </td>
                               </tr>

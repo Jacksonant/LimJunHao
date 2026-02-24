@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { DEFAULT_LOTTERY_ID, getLotteryConfig } from '@/lib/lotteryConfig';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -888,18 +889,15 @@ async function fetchAllDrawsKeyset(tableName: string): Promise<DrawData[]> {
 export async function POST(request: Request) {
   try {
     const { type } = await request.json();
-
-    const tableName =
-      type === 'supreme-toto-6-58'
-        ? 'supreme_toto_6_58'
-        : 'supreme_toto_6_58';
+    const lotteryConfig = getLotteryConfig(type || DEFAULT_LOTTERY_ID);
+    const { tableName, range, picks } = lotteryConfig;
 
     const allData = await fetchAllDrawsKeyset(tableName);
 
     console.log(`Fetched ${allData.length} draws for analysis`);
 
     const analysis = analyzeData(allData);
-    const backtest = allData.length > 20 ? runBacktestOptimized(allData, 58, 6) : null;
+    const backtest = allData.length > 20 ? runBacktestOptimized(allData, range, picks) : null;
 
     return NextResponse.json({
       analysis,

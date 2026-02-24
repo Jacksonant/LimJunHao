@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { DEFAULT_LOTTERY_ID, getLotteryConfig } from '@/lib/lotteryConfig';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -7,18 +8,10 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const type = searchParams.get('type') || 'supreme-toto-6-58';
+  const type = searchParams.get('type') || DEFAULT_LOTTERY_ID;
   const page = parseInt(searchParams.get('page') || '0');
   const pageSize = 1000;
-
-  let tableName = '';
-  switch (type) {
-    case 'supreme-toto-6-58':
-      tableName = 'supreme_toto_6_58';
-      break;
-    default:
-      tableName = 'supreme_toto_6_58';
-  }
+  const tableName = getLotteryConfig(type).tableName;
 
   try {
     const { count } = await supabase
