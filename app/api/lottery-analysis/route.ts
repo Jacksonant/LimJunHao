@@ -111,6 +111,14 @@ const analyzeData = (data: DrawData[]): AnalysisResult => {
   };
 };
 
+const sortPredictionsByDrawDateDesc = <T extends { draw_date: string }>(predictions: T[]): T[] =>
+  [...predictions].sort((a, b) => {
+    const aTime = Date.parse(a.draw_date);
+    const bTime = Date.parse(b.draw_date);
+    return (Number.isNaN(bTime) ? Number.NEGATIVE_INFINITY : bTime) -
+      (Number.isNaN(aTime) ? Number.NEGATIVE_INFINITY : aTime);
+  });
+
 /**
  * Backtest (fast) + "region" (mentor tip) modeling:
  * - NO FUTURE LEAKAGE
@@ -491,8 +499,10 @@ export const runBacktestOptimized_v1 = (
     predictions[0]
   );
 
+  const sortedPredictions = sortPredictionsByDrawDateDesc(predictions);
+
   return {
-    predictions,
+    predictions: sortedPredictions,
     overallAccuracy,
     avgMatches,
     bestDraw,
@@ -817,8 +827,10 @@ export const runBacktestOptimized = (
   const bestDraw = predictions.reduce((best, p) => (p.matches > best.matches ? p : best), predictions[0]);
   const worstDraw = predictions.reduce((worst, p) => (p.matches < worst.matches ? p : worst), predictions[0]);
 
+  const sortedPredictions = sortPredictionsByDrawDateDesc(predictions);
+
   return {
-    predictions,
+    predictions: sortedPredictions,
     overallAccuracy,
     avgMatches,
     bestDraw,

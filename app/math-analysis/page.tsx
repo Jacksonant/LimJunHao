@@ -78,6 +78,20 @@ const AnimatedNumber: React.FC<AnimatedNumberProps> = ({
 
 const LOTTERY_TYPES = [{ id: 'supreme-toto-6-58', name: 'Supreme Toto 6/58', range: 58, picks: 6 }];
 
+const parseDrawDate = (value: string): number => {
+  const parsed = Date.parse(value);
+  if (!Number.isNaN(parsed)) return parsed;
+
+  const match = value.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/);
+  if (!match) return Number.NEGATIVE_INFINITY;
+
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const year = Number(match[3].length === 2 ? `20${match[3]}` : match[3]);
+  const fallback = new Date(year, month - 1, day).getTime();
+  return Number.isNaN(fallback) ? Number.NEGATIVE_INFINITY : fallback;
+};
+
 export default function AnalysisPage() {
   const [activeTab, setActiveTab] = useState('supreme-toto-6-58');
   const [data, setData] = useState<DrawData[]>([]);
@@ -248,6 +262,12 @@ export default function AnalysisPage() {
     backtestResult?.drawsTested ??
     backtestResult?.predictions?.length ??
     0;
+  const sortedPredictionResults = [...(backtestResult?.predictions ?? [])].sort(
+    (a, b) => parseDrawDate(b.draw_date) - parseDrawDate(a.draw_date)
+  );
+  const displayedPredictionResults = showAllResults
+    ? sortedPredictionResults
+    : sortedPredictionResults.slice(0, 20);
 
   return (
     <>
@@ -395,8 +415,7 @@ export default function AnalysisPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {(showAllResults ? backtestResult.predictions : backtestResult.predictions.slice(0, 20)).map(
-                            (pred, idx) => (
+                          {displayedPredictionResults.map((pred, idx) => (
                               <tr key={idx} style={{ borderBottom: '1px solid #374151' }}>
                                 <td style={{ padding: '12px', color: '#d1d5db' }}>{pred.draw_date}</td>
                                 <td style={{ padding: '12px' }}>
