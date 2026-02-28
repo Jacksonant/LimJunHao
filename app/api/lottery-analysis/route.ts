@@ -120,6 +120,15 @@ const sortPredictionsByDrawDateDesc = <T extends { draw_date: string }>(predicti
       (Number.isNaN(aTime) ? Number.NEGATIVE_INFINITY : aTime);
   });
 
+const countPositionalMatches = (actual: number[], predicted: number[]): number => {
+  const len = Math.min(actual.length, predicted.length);
+  let matches = 0;
+  for (let i = 0; i < len; i++) {
+    if (actual[i] === predicted[i]) matches++;
+  }
+  return matches;
+};
+
 /**
  * Backtest (fast) + "region" (mentor tip) modeling:
  * - NO FUTURE LEAKAGE
@@ -453,11 +462,7 @@ export const runBacktestOptimized_v1 = (
     }
 
     // Evaluate
-    const actualSet = new Set(target.numbers);
-    let matches = 0;
-    for (let j = 0; j < finalPicks.length; j++) {
-      if (actualSet.has(finalPicks[j])) matches++;
-    }
+    const matches = countPositionalMatches(target.numbers, finalPicks);
 
     predictions.push({
       draw_date: target.draw_date,
@@ -542,6 +547,17 @@ export const runBacktestOptimized = (
       drawsTested: 0,
     };
   }
+  if (n < 2) {
+    return {
+      predictions: [],
+      overallAccuracy: 0,
+      avgMatches: 0,
+      bestDraw: null,
+      worstDraw: null,
+      totalDraws: data.length,
+      drawsTested: 0,
+    };
+  }
 
   // -------------------------
   // Seeded RNG (Mulberry32)
@@ -557,8 +573,6 @@ export const runBacktestOptimized = (
   // -------------------------
   // Helpers
   // -------------------------
-  const sorted = (arr: number[]) => [...arr].sort((a, b) => a - b);
-
   const sumOf = (arr: number[]) => {
     let s = 0;
     for (let i = 0; i < arr.length; i++) s += arr[i];
@@ -592,21 +606,135 @@ export const runBacktestOptimized = (
     return max;
   };
 
-  // -------------------------
-  // Incremental training stats (simple scoring)
-  // -------------------------
-  const freq = new Uint32Array(range + 1);
-  const recentW = new Float64Array(range + 1);
-  const decay = Math.exp(-1 / 15);
-  let maxRecentW = 0;
+  const overlapWithSet = (nums: number[], s: Set<number>) => {
+    let c = 0;
+    for (let i = 0; i < nums.length; i++) if (s.has(nums[i])) c++;
+    return c;
+  };
 
-  const addToTraining = (idx: number) => {
-    const nums = data[idx].numbers;
+  const weightedSampleNoReplace = (
+    scoredPool: { num: number; score: number }[],
+    k: number
+  ) => {
+    const pool = scoredPool.map((x) => ({
+      num: x.num,
+      w: Math.max(x.score, 0) + 1e-9,
+    }));
+    const out: number[] = [];
+
+    while (out.length < k && pool.length > 0) {
+      let totalW = 0;
+      for (let i = 0; i < pool.length; i++) totalW += pool[i].w;
+      let r = rand() * totalW;
+      let chosen = 0;
+      for (let i = 0; i < pool.length; i++) {
+        r -= pool[i].w;
+        if (r <= 0) {
+          chosen = i;
+          break;
+        }
+      }
+      out.push(pool[chosen].num);
+      pool.splice(chosen, 1);
+    }
+
+    return out.sort((a, b) => a - b);
+  };
+
+  const getQuantile = (arr: Uint32Array, q: number) => {
+    let total = 0;
+    for (let i = 0; i < arr.length; i++) total += arr[i];
+    if (total === 0) return 0;
+    const target = total * q;
+    let acc = 0;
+    for (let i = 0; i < arr.length; i++) {
+      acc += arr[i];
+      if (acc >= target) return i;
+    }
+    return arr.length - 1;
+  };
+
+  const pairIdx = (a: number, b: number) => a * (range + 1) + b;
+
+  // -------------------------
+  // Incremental training stats (adaptive quant scoring)
+  // -------------------------
+  const freq = new Uint32Array(range + 1); // long-run frequency
+  const recentW = new Float64Array(range + 1);
+  const decay = Math.exp(-1 / 14);
+  let maxRecentW = 0;
+  const lastSeen = new Int32Array(range + 1);
+  lastSeen.fill(-1);
+
+  // across-draw transitions: prev draw number -> next draw number
+  const followCount = new Uint32Array((range + 1) * (range + 1));
+  const pairWithinDraw = new Uint32Array((range + 1) * (range + 1));
+  let maxPairWithin = 1;
+
+  let trainingCount = 0;
+  const oddCountHist = new Uint32Array(picks + 1);
+  const repeatHist = new Uint32Array(picks + 1);
+  const bucketMaxHist = new Uint32Array(picks + 1);
+  const sumHistBins = new Uint32Array(Math.floor((range * picks) / 5) + 1);
+  const SUM_BIN = 5;
+
+  // Welford online mean/std for draw sums
+  let sumMean = 0;
+  let sumM2 = 0;
+
+  const addToTraining = (idx: number, prevIdx: number | null) => {
+    const nums = [...data[idx].numbers].sort((a, b) => a - b);
+    const numSet = new Set(nums);
+
+    const drawSum = sumOf(nums);
+    const odd = oddCountOf(nums);
+    const bucketMax = maxBucketCount(nums);
+    const sumBin = Math.min(sumHistBins.length - 1, Math.floor(drawSum / SUM_BIN));
+
+    trainingCount += 1;
+    oddCountHist[odd] += 1;
+    bucketMaxHist[bucketMax] += 1;
+    sumHistBins[sumBin] += 1;
+
+    const delta = drawSum - sumMean;
+    sumMean += delta / trainingCount;
+    sumM2 += delta * (drawSum - sumMean);
+
+    if (prevIdx !== null && prevIdx >= 0) {
+      const prev = data[prevIdx].numbers;
+      let repeats = 0;
+      for (let i = 0; i < prev.length; i++) {
+        if (numSet.has(prev[i])) repeats++;
+      }
+      repeatHist[repeats] += 1;
+
+      for (let i = 0; i < prev.length; i++) {
+        for (let j = 0; j < nums.length; j++) {
+          const pi = prev[i];
+          const nj = nums[j];
+          followCount[pairIdx(pi, nj)] += 1;
+        }
+      }
+    }
+
     for (let i = 0; i < nums.length; i++) {
       const x = nums[i];
       freq[x] += 1;
       recentW[x] += 1;
       if (recentW[x] > maxRecentW) maxRecentW = recentW[x];
+      lastSeen[x] = idx;
+    }
+
+    for (let i = 0; i < nums.length - 1; i++) {
+      for (let j = i + 1; j < nums.length; j++) {
+        const a = nums[i];
+        const b = nums[j];
+        pairWithinDraw[pairIdx(a, b)] += 1;
+        pairWithinDraw[pairIdx(b, a)] += 1;
+        if (pairWithinDraw[pairIdx(a, b)] > maxPairWithin) {
+          maxPairWithin = pairWithinDraw[pairIdx(a, b)];
+        }
+      }
     }
   };
 
@@ -616,26 +744,6 @@ export const runBacktestOptimized = (
       recentW[x] *= decay;
       if (recentW[x] > maxRecentW) maxRecentW = recentW[x];
     }
-  };
-
-  // -------------------------
-  // Shape stats (odd-count mode + sum band)
-  // -------------------------
-  const oddCountHist = new Uint32Array(picks + 1);
-
-  const SUM_BIN = 10; // bin width
-  const MAX_SUM = range * picks;
-  const sumBins = Math.floor(MAX_SUM / SUM_BIN) + 1;
-  const sumHist = new Uint32Array(sumBins);
-
-  const addShapeToTraining = (idx: number) => {
-    const nums = data[idx].numbers;
-    const odd = oddCountOf(nums);
-    oddCountHist[odd] += 1;
-
-    const s = sumOf(nums);
-    const b = Math.min(sumBins - 1, Math.floor(s / SUM_BIN));
-    sumHist[b] += 1;
   };
 
   const getOddMode = () => {
@@ -650,26 +758,34 @@ export const runBacktestOptimized = (
     return best;
   };
 
-  const getTopSumBins = (topK: number) => {
-    const arr: { bin: number; v: number }[] = [];
-    for (let b = 0; b < sumHist.length; b++) arr.push({ bin: b, v: sumHist[b] });
-    arr.sort((a, b) => b.v - a.v);
-    return arr.slice(0, Math.min(topK, arr.length)).map((x) => x.bin);
+  const stdSum = () => (trainingCount > 1 ? Math.sqrt(sumM2 / (trainingCount - 1)) : 0);
+
+  const componentTopHits = (
+    component: Float64Array,
+    actualSet: Set<number>
+  ) => {
+    const arr: { num: number; score: number }[] = [];
+    for (let x = 1; x <= range; x++) arr.push({ num: x, score: component[x] });
+    arr.sort((a, b) => b.score - a.score);
+    let hits = 0;
+    for (let i = 0; i < Math.min(picks, arr.length); i++) {
+      if (actualSet.has(arr[i].num)) hits++;
+    }
+    return hits / picks;
   };
 
-  const inTopSumBins = (sum: number, topBins: number[]) => {
-    const b = Math.min(sumBins - 1, Math.floor(sum / SUM_BIN));
-    for (let i = 0; i < topBins.length; i++) if (topBins[i] === b) return true;
-    return false;
-  };
+  // Component performance EMAs (used for adaptive blending)
+  let emaLong = 0.33;
+  let emaRecent = 0.35;
+  let emaGap = 0.16;
+  let emaFollow = 0.16;
 
   // -------------------------
   // Warmup
   // -------------------------
-  const startIndex = Math.min(50, n - 1);
+  const startIndex = Math.min(Math.max(45, 1), n - 1);
   for (let i = 0; i < startIndex; i++) {
-    addToTraining(i);
-    addShapeToTraining(i);
+    addToTraining(i, i > 0 ? i - 1 : null);
     decayRecent();
   }
 
@@ -678,71 +794,109 @@ export const runBacktestOptimized = (
   // -------------------------
   for (let i = startIndex; i < n; i++) {
     const target = data[i];
-
-    // ✅ Hard rule you stated: previous draw numbers won't appear next draw
+    const targetSet = new Set(target.numbers);
     const prevSet = new Set<number>(data[i - 1].numbers);
 
-    // score candidates (simple + fast)
-    const denom = Math.max(i, 1);
-    const scored: { num: number; score: number }[] = [];
+    // Adaptive component weights based on recent walk-forward performance
+    const rawLong = 0.25 + emaLong;
+    const rawRecent = 0.25 + emaRecent;
+    const rawGap = 0.12 + emaGap;
+    const rawFollow = 0.12 + emaFollow;
+    const wSum = rawLong + rawRecent + rawGap + rawFollow;
+    const wLong = rawLong / wSum;
+    const wRecent = rawRecent / wSum;
+    const wGap = rawGap / wSum;
+    const wFollow = rawFollow / wSum;
+
+    const denom = Math.max(trainingCount, 1);
+    const gapBaseline = range / picks;
+    const followNorm = Math.max(denom * picks, 1);
+
+    const longComp = new Float64Array(range + 1);
+    const recentComp = new Float64Array(range + 1);
+    const gapComp = new Float64Array(range + 1);
+    const followComp = new Float64Array(range + 1);
+
+    const scored: { num: number; score: number }[] = new Array(range);
     for (let x = 1; x <= range; x++) {
-      if (prevSet.has(x)) continue; // enforce anti-repeat
-      const f = freq[x] / denom;
-      const r = maxRecentW > 0 ? recentW[x] / maxRecentW : 0;
-      scored.push({ num: x, score: f * 0.45 + r * 0.55 });
+      const longS = freq[x] / denom;
+      const recentS = maxRecentW > 0 ? recentW[x] / maxRecentW : 0;
+      const gap =
+        lastSeen[x] >= 0
+          ? i - lastSeen[x]
+          : Math.max(1, Math.floor(gapBaseline));
+      const gapDist = Math.abs(gap - gapBaseline) / (gapBaseline + 1e-9);
+      const gapS = 1 / (1 + gapDist);
+
+      let followRaw = 0;
+      for (const p of prevSet) followRaw += followCount[pairIdx(p, x)];
+      const followS = followRaw / followNorm;
+
+      longComp[x] = longS;
+      recentComp[x] = recentS;
+      gapComp[x] = gapS;
+      followComp[x] = followS;
+
+      // Soft anti-repeat instead of hard exclusion
+      const repeatPenalty = prevSet.has(x) ? 0.22 : 0;
+
+      const blended =
+        wLong * longS +
+        wRecent * recentS +
+        wGap * gapS +
+        wFollow * followS -
+        repeatPenalty;
+
+      scored[x - 1] = { num: x, score: blended };
     }
     scored.sort((a, b) => b.score - a.score);
 
     // shape targets
     const oddMode = getOddMode();
-    const topSumBins = getTopSumBins(3);
+    const sumStd = stdSum();
+    const sumLow = sumMean - Math.max(1, sumStd * 1.65);
+    const sumHigh = sumMean + Math.max(1, sumStd * 1.65);
+    const maxBucketAllowed = Math.max(3, getQuantile(bucketMaxHist, 0.9));
+    const overlapMode = getQuantile(repeatHist, 0.55);
 
     // build candidates and keep best
-    const TRIES = 350; // still cheap
+    const TRIES = 900;
     let bestTicket: number[] = [];
     let bestTicketScore = -Infinity;
 
-    const POOL = Math.min(scored.length, Math.max(30, picks * 12));
+    const POOL = Math.min(scored.length, Math.max(36, picks * 14));
     const pool = scored.slice(0, POOL);
 
     for (let t = 0; t < TRIES; t++) {
-      const chosen: number[] = [];
-      const used = new Set<number>();
-
-      while (chosen.length < picks) {
-        // bias to top, but allow diversity
-        const topK = Math.min(pool.length, 12 + Math.floor(rand() * 10)); // 12..21
-        const idx = Math.floor(rand() * topK);
-        const x = pool[idx].num;
-        if (used.has(x)) continue;
-        used.add(x);
-        chosen.push(x);
-      }
-
-      const ticket = chosen.sort((a, b) => a - b);
+      const ticket = weightedSampleNoReplace(pool, picks);
+      if (ticket.length !== picks) continue;
       const s = sumOf(ticket);
       const odd = oddCountOf(ticket);
+      const overlap = overlapWithSet(ticket, prevSet);
+      const bucketMax = maxBucketCount(ticket);
 
-      // (A) odd-shape filter: allow mode +/- 1
-      if (Math.abs(odd - oddMode) > 1) continue;
+      // keep filters broad to reduce overfitting while removing outliers
+      if (Math.abs(odd - oddMode) > 2) continue;
+      if (s < sumLow || s > sumHigh) continue;
+      if (bucketMax > maxBucketAllowed + 1) continue;
 
-      // (B) sum band filter
-      if (!inTopSumBins(s, topSumBins)) continue;
-
-      // ✅ (C) NEW: bucket spread filter (region rule)
-      // reject if 4 or more from same bucket (too concentrated)
-      if (maxBucketCount(ticket) >= 4) continue;
-
-      // score ticket = sum of member scores (pool is small, linear scan ok)
+      // ticket score = number score + pair synergy + shape likelihood terms
       let sc = 0;
-      for (let k = 0; k < ticket.length; k++) {
-        for (let j = 0; j < pool.length; j++) {
-          if (pool[j].num === ticket[k]) {
-            sc += pool[j].score;
-            break;
-          }
+      for (let k = 0; k < ticket.length; k++) sc += longComp[ticket[k]] * 0.25 + recentComp[ticket[k]] * 0.35 + gapComp[ticket[k]] * 0.2 + followComp[ticket[k]] * 0.2;
+
+      let pairSynergy = 0;
+      let pairDen = 0;
+      for (let a = 0; a < ticket.length - 1; a++) {
+        for (let b = a + 1; b < ticket.length; b++) {
+          pairSynergy += pairWithinDraw[pairIdx(ticket[a], ticket[b])] / maxPairWithin;
+          pairDen++;
         }
       }
+      if (pairDen > 0) sc += (pairSynergy / pairDen) * 0.5;
+
+      sc -= Math.abs(odd - oddMode) * 0.04;
+      sc -= Math.abs(overlap - overlapMode) * 0.05;
+      sc -= Math.max(0, bucketMax - maxBucketAllowed) * 0.08;
 
       if (sc > bestTicketScore) {
         bestTicketScore = sc;
@@ -750,61 +904,24 @@ export const runBacktestOptimized = (
       }
     }
 
-    // fallback: if filters too strict, relax bucket rule automatically
+    // fallback: if no candidate survives, use diversified top blend
     if (bestTicket.length !== picks) {
-      // try again with relaxed bucket filter (max bucket 5)
-      let relaxedBest: number[] = [];
-      let relaxedScore = -Infinity;
-
-      const RELAX_TRIES = 200;
-      for (let t = 0; t < RELAX_TRIES; t++) {
-        const chosen: number[] = [];
-        const used = new Set<number>();
-
-        while (chosen.length < picks) {
-          const topK = Math.min(pool.length, 15 + Math.floor(rand() * 12)); // 15..26
-          const idx = Math.floor(rand() * topK);
-          const x = pool[idx].num;
-          if (used.has(x)) continue;
-          used.add(x);
-          chosen.push(x);
-        }
-
-        const ticket = chosen.sort((a, b) => a - b);
-        const s = sumOf(ticket);
-        const odd = oddCountOf(ticket);
-
-        if (Math.abs(odd - oddMode) > 1) continue;
-        if (!inTopSumBins(s, topSumBins)) continue;
-
-        // relaxed bucket (allow concentration up to 4)
-        if (maxBucketCount(ticket) >= 5) continue;
-
-        let sc = 0;
-        for (let k = 0; k < ticket.length; k++) {
-          for (let j = 0; j < pool.length; j++) {
-            if (pool[j].num === ticket[k]) {
-              sc += pool[j].score;
-              break;
-            }
-          }
-        }
-
-        if (sc > relaxedScore) {
-          relaxedScore = sc;
-          relaxedBest = ticket;
-        }
+      const fallback: number[] = [];
+      const bucketUse = [0, 0, 0, 0, 0, 0];
+      for (let j = 0; j < scored.length && fallback.length < picks; j++) {
+        const x = scored[j].num;
+        const bi = bucketIndex(x);
+        if (bucketUse[bi] >= maxBucketAllowed) continue;
+        fallback.push(x);
+        bucketUse[bi]++;
       }
-
-      bestTicket = relaxedBest.length === picks
-        ? relaxedBest
-        : pool.slice(0, picks).map((x) => x.num).sort((a, b) => a - b);
+      bestTicket = fallback.length === picks
+        ? fallback.sort((a, b) => a - b)
+        : scored.slice(0, picks).map((x) => x.num).sort((a, b) => a - b);
     }
 
     // evaluate
-    const actualSet = new Set(target.numbers);
-    let matches = 0;
-    for (let k = 0; k < bestTicket.length; k++) if (actualSet.has(bestTicket[k])) matches++;
+    const matches = countPositionalMatches(target.numbers, bestTicket);
 
     predictions.push({
       draw_date: target.draw_date,
@@ -812,12 +929,18 @@ export const runBacktestOptimized = (
       predicted: bestTicket,
       matches,
       accuracy: (matches / picks) * 100,
-      method: 'Anti-Repeat + Shape(Odd/Sum) + Bucket-Spread + Simple Score',
+      method: 'Adaptive Blend + Follow Matrix + Pair Synergy + Calibrated Shape',
     });
 
+    // Update component performance EMAs with realized draw (walk-forward)
+    const alpha = 0.15;
+    emaLong = (1 - alpha) * emaLong + alpha * componentTopHits(longComp, targetSet);
+    emaRecent = (1 - alpha) * emaRecent + alpha * componentTopHits(recentComp, targetSet);
+    emaGap = (1 - alpha) * emaGap + alpha * componentTopHits(gapComp, targetSet);
+    emaFollow = (1 - alpha) * emaFollow + alpha * componentTopHits(followComp, targetSet);
+
     // advance training
-    addToTraining(i);
-    addShapeToTraining(i);
+    addToTraining(i, i - 1);
     decayRecent();
   }
 
