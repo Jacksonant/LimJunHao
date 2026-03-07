@@ -4,5 +4,6 @@ openai
 numpy
 python-dotenv
 python-bidi==0.4.2
+paddlepaddle
 paddleocr
 Pillow
