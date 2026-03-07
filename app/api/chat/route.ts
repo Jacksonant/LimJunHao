@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+const BACKEND_API_BASE_URL = process.env.BACKEND_API_BASE_URL || 'http://localhost:8000';
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     
-    const response = await fetch('http://localhost:8000/chat', {
+    const response = await fetch(`${BACKEND_API_BASE_URL}/chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

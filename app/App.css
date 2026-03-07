@@ -50,6 +50,12 @@ body {
   cursor: none;
 }
 
+/* Route-level escape hatch: show native cursor (used by /ocr page) */
+body.show-native-cursor,
+body.show-native-cursor * {
+  cursor: auto !important;
+}
+
 .cursor {
   position: fixed;
   width: 12px;

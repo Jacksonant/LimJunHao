@@ -5,6 +5,8 @@ from chatbot import AdvancedChatbot
 from tools import ChatbotWithTools
 from rag import RAGChatbot
 from dotenv import load_dotenv
+from ocr_runner import run_ocr_pipeline, start_ocr_job, get_ocr_job
+import traceback
 
 load_dotenv()
 
@@ -12,7 +14,12 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "https://limjunhao.com",
+        "https://www.limjunhao.com",
+        "https://limjunhao.netlify.app",
+    ],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -32,6 +39,10 @@ class KnowledgeRequest(BaseModel):
 
 class ClearRequest(BaseModel):
     user_id: str
+
+class OCRRequest(BaseModel):
+    image_base64: str
+    lang: str = "en"
 
 @app.post("/chat")
 async def chat(request: ChatRequest):
@@ -62,6 +73,37 @@ async def clear(request: ClearRequest):
         chatbot.clear_history(request.user_id)
         return {"status": "cleared", "message": "Conversation history cleared"}
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/ocr")
+async def ocr(request: OCRRequest):
+    try:
+        payload = run_ocr_pipeline(request.image_base64, request.lang)
+        return payload
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/ocr/start")
+async def ocr_start(request: OCRRequest):
+    try:
+        job_id = start_ocr_job(request.image_base64, request.lang)
+        return {"jobId": job_id, "status": "queued"}
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/ocr/status/{job_id}")
+async def ocr_status(job_id: str):
+    try:
+        job = get_ocr_job(job_id)
+        if not job:
+            raise HTTPException(status_code=404, detail="OCR job not found")
+        return job
+    except HTTPException:
+        raise
+    except Exception as e:
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/")

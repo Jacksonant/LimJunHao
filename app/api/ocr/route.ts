@@ -5,8 +5,8 @@ const BACKEND_API_BASE_URL = process.env.BACKEND_API_BASE_URL || 'http://localho
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    
-    const response = await fetch(`${BACKEND_API_BASE_URL}/clear`, {
+
+    const response = await fetch(`${BACKEND_API_BASE_URL}/ocr`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -15,15 +15,17 @@ export async function POST(req: NextRequest) {
     });
 
     if (!response.ok) {
-      throw new Error(`Backend error: ${response.statusText}`);
+      const errText = await response.text();
+      throw new Error(`Backend error: ${response.status} ${errText}`);
     }
 
     const data = await response.json();
     return NextResponse.json(data);
-  } catch (error) {
-    console.error('Clear API error:', error);
+  } catch (error: any) {
+    const message = error?.message || 'Failed to run OCR request';
+    console.error('OCR API error:', error);
     return NextResponse.json(
-      { error: 'Failed to clear history' },
+      { error: message },
       { status: 500 }
     );
   }

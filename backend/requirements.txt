@@ -3,3 +3,5 @@ uvicorn
 openai
 numpy
 python-dotenv
+paddleocr
+Pillow
