@@ -1,4 +1,8 @@
 # Advanced AI Chatbot Backend
+python3 -m venv venv           # Create venv (only first time)
+source venv/bin/activate       # Activate venv FIRST
+pip install -r requirements.txt # Install inside venv
+uvicorn main:app --reload      # Run server
 
 ## Setup
 

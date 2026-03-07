@@ -3,5 +3,6 @@ uvicorn
 openai
 numpy
 python-dotenv
+python-bidi==0.4.2
 paddleocr
 Pillow
