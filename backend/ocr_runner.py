@@ -183,30 +183,32 @@ def run_ocr_pipeline(
         emit("INFO stage=model_init status=ready")
 
         emit("INFO stage=inference action=begin")
+        inference_start = time.perf_counter()
         try:
             # Old PaddleOCR API
             result = ocr.ocr(str(tmp_path), cls=True)
-            emit("INFO stage=inference api=v2_with_cls status=ok")
+            emit(f"INFO stage=inference api=v2_with_cls status=ok duration_ms={int((time.perf_counter() - inference_start) * 1000)}")
         except TypeError as exc:
             # New PaddleOCR API (predict kwargs no longer support `cls`)
             if "unexpected keyword argument 'cls'" not in str(exc):
                 raise
             emit("WARN stage=inference api=v3_no_cls fallback=true")
             result = ocr.ocr(str(tmp_path))
-            emit("INFO stage=inference api=v3_no_cls status=ok")
-        except Exception:
+            emit(f"INFO stage=inference api=v3_no_cls status=ok duration_ms={int((time.perf_counter() - inference_start) * 1000)}")
+        except Exception as retry_exc:
             # First-run model bootstrap can be flaky; one retry improves stability.
-            emit("WARN stage=inference retry_once=true")
+            emit(f"WARN stage=inference retry_once=true error={retry_exc}")
             time.sleep(1.0)
+            inference_start = time.perf_counter()
             try:
                 result = ocr.ocr(str(tmp_path), cls=True)
-                emit("INFO stage=inference retry_result=ok api=v2_with_cls")
+                emit(f"INFO stage=inference retry_result=ok api=v2_with_cls duration_ms={int((time.perf_counter() - inference_start) * 1000)}")
             except TypeError as exc:
                 if "unexpected keyword argument 'cls'" not in str(exc):
                     raise
                 emit("WARN stage=inference retry_fallback=v3_no_cls")
                 result = ocr.ocr(str(tmp_path))
-                emit("INFO stage=inference retry_result=ok api=v3_no_cls")
+                emit(f"INFO stage=inference retry_result=ok api=v3_no_cls duration_ms={int((time.perf_counter() - inference_start) * 1000)}")
 
         emit("INFO stage=parse action=begin")
         lines = _to_builtin(_parse_output(result))

@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
       headers: {
         'Content-Type': 'application/json',
       },
+      signal: AbortSignal.timeout(5000), // 5s timeout for status check
     });
 
     const raw = await response.text();

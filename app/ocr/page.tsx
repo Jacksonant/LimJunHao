@@ -233,8 +233,12 @@ export default function OCRPage() {
 
   useEffect(() => {
     document.body.classList.add('show-native-cursor');
+    const style = document.createElement('style');
+    style.textContent = '@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }';
+    document.head.appendChild(style);
     return () => {
       document.body.classList.remove('show-native-cursor');
+      document.head.removeChild(style);
     };
   }, []);
 
@@ -304,6 +308,7 @@ export default function OCRPage() {
     if (!jobId) return;
     let cancelled = false;
     let consecutiveErrors = 0;
+    let pollCount = 0;
     let timer: ReturnType<typeof setTimeout> | null = null;
 
     const poll = async () => {
@@ -319,9 +324,20 @@ export default function OCRPage() {
 
         if (cancelled) return;
         consecutiveErrors = 0;
+        pollCount++;
         setData(json);
 
         if (json?.status === 'done' || json?.status === 'error') {
+          setLoading(false);
+          if (json?.status === 'error') {
+            setError(json?.error || 'OCR processing failed');
+          }
+          return;
+        }
+
+        // Timeout after 60 seconds (60 polls * 1000ms)
+        if (pollCount >= 60) {
+          setError('OCR processing timeout - job took too long');
           setLoading(false);
           return;
         }
@@ -344,13 +360,13 @@ export default function OCRPage() {
           logs: [...(prev?.logs || []), `status:retry_${consecutiveErrors}:${msg}`],
         }));
 
-        if (consecutiveErrors >= 12) {
+        if (consecutiveErrors >= 5) {
           setError(`Polling failed repeatedly: ${msg}`);
           setLoading(false);
           return;
         }
       }
-      timer = setTimeout(poll, 700);
+      timer = setTimeout(poll, 1000);
     };
 
     poll();
@@ -452,8 +468,16 @@ export default function OCRPage() {
             gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
           }}
         >
-          <div style={{ border: '1px solid #334155', borderRadius: 10, padding: 14, background: '#111827' }}>
-            <h2 style={{ marginTop: 0 }}>Pipeline Logs</h2>
+          <div style={{ border: '1px solid #334155', borderRadius: 10, padding: 14, background: '#111827', display: 'flex', flexDirection: 'column' }}>
+            <h2 style={{ marginTop: 0, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+              Pipeline Logs
+              {loading && (
+                <span style={{ fontSize: 12, color: '#0ea5e9', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>⟳</span>
+                  Processing...
+                </span>
+              )}
+            </h2>
             <pre
               style={{
                 margin: 0,
@@ -461,19 +485,19 @@ export default function OCRPage() {
                 border: '1px solid #334155',
                 borderRadius: 8,
                 padding: 10,
-                minHeight: 220,
+                flex: 1,
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-word',
                 fontSize: 12,
-                overflowY: "auto"
+                overflowY: 'auto'
               }}
             >
               {(data?.logs || ['No run yet.']).join('\n')}
             </pre>
           </div>
 
-          <div style={{ border: '1px solid #334155', borderRadius: 10, padding: 14, background: '#111827' }}>
-            <h2 style={{ marginTop: 0 }}>Analysis</h2>
+          <div style={{ border: '1px solid #334155', borderRadius: 10, padding: 14, background: '#111827', display: 'flex', flexDirection: 'column' }}>
+            <h2 style={{ marginTop: 0, marginBottom: 12 }}>Analysis</h2>
             <pre
               style={{
                 margin: 0,
@@ -481,18 +505,19 @@ export default function OCRPage() {
                 border: '1px solid #334155',
                 borderRadius: 8,
                 padding: 10,
-                minHeight: 220,
+                flex: 1,
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-word',
                 fontSize: 12,
+                overflowY: 'auto'
               }}
             >
               {JSON.stringify(data?.analysis || { status: 'No analysis yet.' }, null, 2)}
             </pre>
           </div>
 
-          <div style={{ border: '1px solid #334155', borderRadius: 10, padding: 14, background: '#111827' }}>
-            <h2 style={{ marginTop: 0 }}>Result</h2>
+          <div style={{ border: '1px solid #334155', borderRadius: 10, padding: 14, background: '#111827', display: 'flex', flexDirection: 'column' }}>
+            <h2 style={{ marginTop: 0, marginBottom: 12 }}>Result</h2>
             <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
               <button
                 onClick={() => copyText(layout.plainText || data?.result?.text || '', 'Plain text')}
